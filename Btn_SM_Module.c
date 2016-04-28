@@ -19,7 +19,7 @@
 *              Button function can be enabled/disabled by calling "Btn_Func_En_Dis()".              
 * Version    : V1.00
 * Author     : Ian
-* Data       : 27th Jan 2016
+* Date       : 27th Jan 2016
 ******************************************************************************/
 
 #include "common.h"
@@ -44,7 +44,7 @@ static PF_GET_BTN  sg_pfGetBtnSt             = NULL;         /* Function to get 
 *              is operated. 
 * Version    : V1.00
 * Author     : Ian
-* Data       : 27th Jan 2016
+* Date       : 27th Jan 2016
 ******************************************************************************/
 void Btn_Func_En_Dis(uint8 u8Ch, uint8 u8EnDis)
 {   
@@ -67,7 +67,7 @@ void Btn_Func_En_Dis(uint8 u8Ch, uint8 u8EnDis)
 *              If the general init is failed, DO NOT continue!!
 * Version    : V1.00
 * Author     : Ian
-* Data       : 27th Jan 2016
+* Date       : 27th Jan 2016
 ******************************************************************************/
 uint8 Btn_General_Init(PF_GET_TM pfGetTm, PF_GET_BTN pfGetBtnSt)
 {
@@ -110,7 +110,7 @@ uint8 Btn_General_Init(PF_GET_TM pfGetTm, PF_GET_BTN pfGetBtnSt)
 *              operation, and init running state of such channel.
 * Version    : V1.00
 * Author     : Ian
-* Data       : 27th Jan 2016
+* Date       : 27th Jan 2016
 ******************************************************************************/
 uint8 Btn_Channel_Init(uint8 u8Ch ,T_BTN_PARA *ptBtnPara)
 {   
@@ -229,7 +229,7 @@ uint8 Btn_Channel_Init(uint8 u8Ch ,T_BTN_PARA *ptBtnPara)
 *              -----------------------------------------------------------------------------
 * Version    : V1.00
 * Author     : Ian
-* Data       : 27th Jan 2016
+* Date       : 27th Jan 2016
 ******************************************************************************/
 uint8 Btn_Channel_Process(uint8 u8Ch)
 {
