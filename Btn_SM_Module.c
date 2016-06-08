@@ -252,7 +252,16 @@ uint8 Btn_Channel_Process(uint8 u8Ch)
     /* If the function is enabled, go on */
         
     /* Get the state of button first */
-    ucBtnSt = sg_pfGetBtnSt(u8Ch);
+    if(NULL != sg_pfGetBtnSt)                  /* If the general button state function is registered     */
+    {
+        ucBtnSt = sg_pfGetBtnSt(u8Ch);         /* Use the general one  */
+    }
+#ifdef __BTN_SM_SPECIFIED_BTN_ST_FN
+    else                                       /* If the general button state function is NOT registered */   
+    { 
+        ucBtnSt = ptBtnPara->pfGetBtnSt(u8Ch); /* Use the specified one */
+    }
+#endif
     
     /* If the state invalid */
     if(BTN_ERROR == ucBtnSt)
