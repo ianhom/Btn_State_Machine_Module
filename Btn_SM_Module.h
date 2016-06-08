@@ -71,6 +71,7 @@ extern "C" {
 * Output:    : None
 * Return     : BTN_STATE_0      Button state is logic "0" 
 *              BTN_STATE_1      Button state is logic "1"
+*              BTN_ERROR        Failed to get button state.
 * description: This function should return the button state according to the channel number
 * Version    : V1.00
 * Author     : Ian
