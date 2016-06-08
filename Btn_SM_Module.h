@@ -98,6 +98,7 @@ typedef uint16 (*PF_GET_TM)();
 * Structure  : T_BTN_PARA
 * Description: Structure of button state machine parameters.
 * Memebers   : Type    Member          Range             Descrption     
+               PF_GET_BTN  pfGetBtnSt                    Function to get button state    
                uint16  u16LongPressTm  0~65535           Time units for long press distinguish
                uint16  u16DebounceTm   0~65535           Time uints for debounce check        
                uint8   u8BtnEn         BTN_FUNC_ENABLE   Enable button function 
@@ -108,6 +109,9 @@ typedef uint16 (*PF_GET_TM)();
 *******************************************************************************/
 typedef struct _T_BTN_PARA_
 {
+#ifdef __BTN_SM_SPECIFIED_BTN_ST_FN
+    PF_GET_BTN  pfGetBtnSt;         /* Function to get button state    */
+#endif
     uint16      u16LongPressTm;     /* Time for long press distinguish */
     uint16      u16DebounceTm;      /* Time for debounce check         */
     uint8       u8BtnEn;            /* Enable or disable function      */
