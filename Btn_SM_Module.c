@@ -253,6 +253,12 @@ uint8 Btn_Channel_Process(uint8 u8Ch)
         
     /* Get the state of button first */
     ucBtnSt = sg_pfGetBtnSt(u8Ch);
+    
+    /* If the state invalid */
+    if(BTN_ERROR == ucBtnSt)
+    {   /* Return error */
+        return BTN_ERROR;
+    }
 
     /* Check state of button state machine */
     switch(ptBtnSt->u8BtnSt)
