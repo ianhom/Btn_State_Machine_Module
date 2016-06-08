@@ -32,8 +32,10 @@ extern "C" {
 #endif
   
 #ifndef MAX_BTN_CH
-#define MAX_BTN_CH                   (1)        /* Max number of buttons, please define it in upper layer */
+#define MAX_BTN_CH                   (1)         /* Max number of buttons, please define it in upper layer */
 #endif
+
+#define BTN_SM_SPECIFIED_BTN_ST_FN               /* Use specified button state get function             */
 
 /* States of button state machine */
 #define BTN_IDLE                     (0)         /* Button is NOT pressed or released                   */
