@@ -23,7 +23,7 @@ M0+内核 + IAR 下 Low优化等级：
 1. 将Btn_SM_Module.c文件导入IDE工程，增加Btn_SM_Module.h的包含路径。
 2. 修改Btn_SM_Module.h中MAX_BTN_CH的值为按键数量（或在该模块上层重新定义该宏，推荐!）
 3. 编写系统时间获取函数，函数要求见Btn_SM_Module.h
-4. 编写按键状态（逻辑1/0）获取函数，函数要求见Btn_SM_Module.h
+4. 编写按键状态（逻辑1/0）获取函数，函数要求见Btn_SM_Module.h。注意这里可以通过宏定义__BTN_SM_SPECIFIED_BTN_ST_FN来选择使用同一的按键状态获取函数或每个按键独立的按键状态获取函数。
 5. 复制Btn_SM_Module.h中的Demo代码，创建配置参数的结构体并根据要求进行初始化配置（去抖时间，长按时间，按键常态、是否使能按键）
 6. 调用一次Btn_General_Init()进行通用初始化
 7. 调用n次"Btn_Channel_Init()"进行各个按键通道的初始化（n为按键数量）
