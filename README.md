@@ -2,6 +2,7 @@
 ## Introduce:
 It is a button state machine module for general use.
 
+It is a similar button state machine module which I have used in a real product. I have improve it and add something new while keeping it reliable.  
 一直在做代码模块化的工作，分享一个自己写的按键扫描模块，欢迎大家试用
 本帖计划长期更新，本人能力有限，有错误之处欢迎指正交流，我将根据大家的反馈进行修改优化，提供更可靠的软件模块给大家。
 
