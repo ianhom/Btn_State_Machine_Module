@@ -14,6 +14,9 @@
 *              Step 4: Create a "uint8 Get_Button_Status(uint8 u8Ch)" function to get button
 *                      status(0/1).
 *              Step 5: Call "Btn_General_Init()" first to get previous interface functions.
+*                      If defined __BTN_SM_SPECIFIED_BTN_ST_FN, and NULL is used for input
+*                      parameter " PF_GET_BTN pfGetBtnSt", each button will use sepcified
+*                      Button state get function.
 *              Step 6: Call "Btn_Channel_Init()" per channel to init every button channel.
 *              Step 7: Poll "Btn_Channel_Process()" per channel to check button state.
 *              Button function can be enabled/disabled by calling "Btn_Func_En_Dis()".              
