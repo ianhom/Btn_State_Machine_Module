@@ -27,11 +27,103 @@
 
 #include "common.h"
 #include "Btn_SM_Module.h"
+#include "KL25_Lpt_Time.h"
 
 static T_BTN_PARA *sg_aptBtnPara[MAX_BTN_CH] = {0};          /* Parameter interface          */
 static T_BTN_ST    sg_atBtnSt[MAX_BTN_CH]    = {0};          /* Running status               */
 static PF_GET_TM   sg_pfGetTm                = NULL;         /* Function to get general time */
 static PF_GET_BTN  sg_pfGetBtnSt             = NULL;         /* Function to get button state */
+
+
+const uint8 c_au8StateMachine[13][4] = 
+{
+    {BTN_IDLE_ST         , BTN_PRESS_EVT       , BTN_IDLE_ST          ,  BTN_PRESS_EVT       },    /* BTN_IDLE             */  
+    {BTN_PRESS_PRE_ST    , BTN_PRESS_PRE_ST    , BTN_PRESS_PRE_ST     ,  BTN_PRESS_PRE_ST    },    /* BTN_PRESS_EVT        */
+    {BTN_IDLE_ST         , BTN_PRESS_PRE_ST    , BTN_IDLE_ST          ,  BTN_PRESSED_EVT     },    /* BTN_PRESS_PRE        */
+    {BTN_PRESS_AFT_ST    , BTN_PRESS_AFT_ST    , BTN_PRESS_AFT_ST     ,  BTN_PRESS_AFT_ST    },    /* BTN_PRESSED_EVT      */
+    {BTN_S_RELEASE_EVT   , BTN_PRESS_AFT_ST    , BTN_S_RELEASE_EVT    ,  BTN_LONG_PRESSED_EVT},    /* BTN_PRESS_AFT        */
+    {BTN_HOLDING_ST      , BTN_HOLDING_ST      , BTN_HOLDING_ST       ,  BTN_HOLDING_ST      },    /* BTN_LONG_PRESSED_EVT */
+    {BTN_L_RELEASE_EVT   , BTN_HOLDING_ST      , BTN_L_RELEASE_EVT    ,  BTN_HOLDING_ST      },    /* BTN_HOLDING          */
+    {BTN_SHORT_RELEASE_ST, BTN_SHORT_RELEASE_ST, BTN_SHORT_RELEASE_ST ,  BTN_SHORT_RELEASE_ST},    /* BTN_S_RELEASE_EVT    */
+    {BTN_LONG_RELEASE_ST , BTN_LONG_RELEASE_ST , BTN_LONG_RELEASE_ST  ,  BTN_LONG_RELEASE_ST },    /* BTN_L_RELEASE_EVT    */ 
+    {BTN_SHORT_RELEASE_ST, BTN_PRESS_AFT_ST    , BTN_S_RELEASED_EVT   ,  BTN_PRESS_AFT_ST    },    /* BTN_SHORT_RELEASE    */
+    {BTN_LONG_RELEASE_ST , BTN_HOLDING_ST      , BTN_L_RELEASED_EVT   ,  BTN_HOLDING_ST      },    /* BTN_LONG_RELEASE     */
+    {BTN_IDLE_ST         , BTN_IDLE_ST         , BTN_IDLE_ST          ,  BTN_IDLE_ST         },    /* BTN_S_RELEASED_EVT   */
+    {BTN_IDLE_ST         , BTN_IDLE_ST         , BTN_IDLE_ST          ,  BTN_IDLE_ST         }     /* BTN_L_RELEASED_EVT   */
+
+};
+
+uint8 g_u8BtnSt = BTN_IDLE;
+uint8 u8BtnValue   = 0;  
+
+T_BTN_RESULT tBtn;
+
+
+uint8 Btn_Sm()
+{
+      
+    static uint16 u16TmD      = 0;
+    static uint16 u16TmL      = 0;
+    uint8 u8TmOutLong  = 0;
+    uint8 u8TmOutShort = 0;               
+    uint8 u8NextSt     = 0x00; 
+    uint16 u16TmDiffD  = 0;
+    uint16 u16TmDiffL  = 0;    
+
+    switch(g_u8BtnSt)
+    {
+    	case BTN_PRESS_EVT: 
+        case BTN_S_RELEASE_EVT: 
+        case BTN_L_RELEASE_EVT:
+        { 
+            u16TmD = (uint16)App_GetSystemTime_ms();   
+            break;
+        }
+        case BTN_PRESSED_EVT: 
+        { 
+            u16TmL = (uint16)App_GetSystemTime_ms();
+            tBtn->u8Evt = g_u8BtnSt
+            break;
+        }
+        case BTN_LONG_PRESSED_EVENT:
+        {
+            tBtn->u8Evt = g_u8BtnSt;
+            break;
+        }
+        case BTN_IDLE_ST:
+    	case BTN_PRESS_PRE_ST:  
+     	case BTN_PRESS_AFT_ST:                                                               
+       	case BTN_HOLDING_ST:                                                   
+    	case BTN_SHORT_RELEASE_ST:                                                                                     
+    	case BTN_LONG_RELEASE_ST:
+    	default:              
+        {                                                         	
+            break;
+        }
+    }
+    
+    u8BtnValue = !(GPIOA_PDIR & (1 << 5));
+
+    if(u8BtnValue == 1)
+    {
+      u8NextSt++;
+    }
+    
+
+    
+    if((((BTN_PRESS_PRE_ST == g_u8BtnSt)||(BTN_SHORT_RELEASE_ST == g_u8BtnSt)||(BTN_LONG_RELEASE_ST == g_u8BtnSt))&&(App_GetSystemDelay_ms(u16TmD)>1000))\
+      ||((BTN_PRESS_AFT_ST == g_u8BtnSt)&&(App_GetSystemDelay_ms(u16TmL)>3000)))
+    {
+      u8NextSt += 2;
+    }
+    
+    // Transition to the next key state according to state machine transition table
+    g_u8BtnSt = c_au8StateMachine[g_u8BtnSt][u8NextSt];
+    
+    return g_u8BtnSt;
+}
+
+
 
 /******************************************************************************
 * Name       : void Btn_Func_En_Dis(uint8 u8Ch, uint8 u8EnDis)
@@ -406,6 +498,10 @@ uint8 Btn_Channel_Process(uint8 u8Ch)
         
     return u8Return;
 }
+
+
+
+
 
 
 
