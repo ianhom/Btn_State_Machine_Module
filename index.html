@@ -34,27 +34,59 @@
 <a id="btn_state_machine_module" class="anchor" href="#btn_state_machine_module" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Btn_State_Machine_Module</h1>
 
 <h2>
-<a id="简介" class="anchor" href="#%E7%AE%80%E4%BB%8B" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>简介：</h2>
+<a id="简介" class="anchor" href="#%E7%AE%80%E4%BB%8B" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>简介</h2>
 
-<p>一直在做代码模块化的工作，分享一个自己写的按键扫描模块，欢迎大家试用
-计划长期更新，本人能力有限，有错误之处欢迎指正交流，我将根据大家的反馈进行修改优化，提供更可靠的软件模块给大家。</p>
+<p>一直在做代码模块化的工作，分享一个自己写的按键扫描模块，欢迎大家试用。<br>
+计划长期更新，本人能力有限，有错误之处欢迎指正交流，我将根据大家的反馈进行修改优化，提供更可靠的软件模块给大家。   </p>
 
 <h2>
 <a id="说明" class="anchor" href="#%E8%AF%B4%E6%98%8E" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>说明：</h2>
 
-<p>本模块可根据按键的按下及释放的状态向上层反馈“按键按下事件”，“按键短按释放事件”，“按键长按事件”和“按键长按释放事件”以满足应用中对按键不同类型操作的检测。
-自带软件去抖，长短按识别。
-按键常态（常开常闭）可配、去抖时间及长按识别时间可调、按键功能可屏蔽/开启，上述功能每个按键可以单独配置不同功能；按键数量可配。
-采用状态机实现，不拖累系统效率。
-本软件模块不限定平台，任何平台都可以用（目标如此）。</p>
+<ul>
+<li>本模块可根据按键的按下及释放的状态向上层反馈“按键按下事件”，“按键短按释放事件”，“按键长按事件”和“按键长按释放事件”以满足应用中对按键不同类型操作的检测。<br>
+</li>
+<li>自带软件去抖，长短按识别。<br>
+</li>
+<li>按键常态（常开常闭）可配、去抖时间及长按识别时间可调、按键功能可屏蔽/开启，上述功能每个按键可以单独配置不同功能；按键数量可配。</li>
+<li>采用状态机实现，不拖累系统效率。</li>
+<li>本软件模块不限定平台，任何平台都可以用（目标如此）。</li>
+</ul>
 
 <h2>
 <a id="资源消耗参考" class="anchor" href="#%E8%B5%84%E6%BA%90%E6%B6%88%E8%80%97%E5%8F%82%E8%80%83" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>资源消耗参考：</h2>
 
-<p>M0+内核 + IAR 下 Low优化等级：<br>
-代码消耗524字节Flash。<br>
-配置参数/运行状态/接口变量消耗n*22+字节的静态全局区RAM （n为按键数量，22为平均值，因地址对齐原因会有所变化）。<br>
-临时变量/函数调用消耗RAM栈区域的资源待测。  </p>
+<p>M0+内核 + IAR 下 Low优化等级：  </p>
+
+<table>
+<thead>
+<tr>
+<th>内容</th>
+<th>区域</th>
+<th>大小</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>代码</td>
+<td>Flash</td>
+<td>524字节</td>
+<td>无</td>
+</tr>
+<tr>
+<td>配置参数/状态/接口变量</td>
+<td>RAM静态储存区</td>
+<td>n*22+字节</td>
+<td>n为按键数量，22为平均值（因地址对齐原因会有所变化）</td>
+</tr>
+<tr>
+<td>临时变量/函数调用开销</td>
+<td>RAM栈区域</td>
+<td>待测</td>
+<td>无</td>
+</tr>
+</tbody>
+</table>
 
 <h2>
 <a id="使用方法" class="anchor" href="#%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>使用方法：</h2>
