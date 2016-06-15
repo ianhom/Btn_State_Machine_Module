@@ -20,7 +20,7 @@
 *              Step 6: Call "Btn_Channel_Init()" per channel to init every button channel.
 *              Step 7: Poll "Btn_Channel_Process()" per channel to check button state.
 *              Button function can be enabled/disabled by calling "Btn_Func_En_Dis()".              
-* Version    : V1.00
+* Version    : V1.10
 * Author     : Ian
 * Date       : 27th Jan 2016
 ******************************************************************************/
@@ -28,6 +28,27 @@
 #include "common.h"
 #include "Btn_SM_Module.h"
 
+#ifdef __OPT
+const uint8 cg_aau8StateMachine[13][4] = 
+{
+    /*  Situation 1  */    /*  Situation 2 */    /*  Situation 3  */     /* Situation 4  */
+    /* Btn NOT press */    /* Btn press    */    /* Btn NOT press */     /* Btn press    */
+    /* Time NOT out  */    /* Time NOT out */    /* Time out      */     /* Time out     */
+    {BTN_PRESS_PRE_ST    , BTN_PRESS_PRE_ST    , BTN_PRESS_PRE_ST     ,  BTN_PRESS_PRE_ST    },    /* BTN_PRESS_EVT        */
+    {BTN_SHORT_RELEASE_ST, BTN_SHORT_RELEASE_ST, BTN_SHORT_RELEASE_ST ,  BTN_SHORT_RELEASE_ST},    /* BTN_S_RELEASE_EVT    */
+    {BTN_LONG_RELEASE_ST , BTN_LONG_RELEASE_ST , BTN_LONG_RELEASE_ST  ,  BTN_LONG_RELEASE_ST },    /* BTN_L_RELEASE_EVT    */
+    {BTN_PRESS_AFT_ST    , BTN_PRESS_AFT_ST    , BTN_PRESS_AFT_ST     ,  BTN_PRESS_AFT_ST    },    /* BTN_PRESSED_EVT      */
+    {BTN_HOLDING_ST      , BTN_HOLDING_ST      , BTN_HOLDING_ST       ,  BTN_HOLDING_ST      },    /* BTN_LONG_PRESSED_EVT */
+    {BTN_IDLE_ST         , BTN_IDLE_ST         , BTN_IDLE_ST          ,  BTN_IDLE_ST         },    /* BTN_S_RELEASED_EVT   */
+    {BTN_IDLE_ST         , BTN_IDLE_ST         , BTN_IDLE_ST          ,  BTN_IDLE_ST         },    /* BTN_L_RELEASED_EVT   */
+    {BTN_IDLE_ST         , BTN_PRESS_PRE_ST    , BTN_IDLE_ST          ,  BTN_PRESSED_EVT     },    /* BTN_PRESS_PRE        */
+    {BTN_SHORT_RELEASE_ST, BTN_PRESS_AFT_ST    , BTN_S_RELEASED_EVT   ,  BTN_PRESS_AFT_ST    },    /* BTN_SHORT_RELEASE    */
+    {BTN_LONG_RELEASE_ST , BTN_HOLDING_ST      , BTN_L_RELEASED_EVT   ,  BTN_HOLDING_ST      },    /* BTN_LONG_RELEASE     */
+    {BTN_IDLE_ST         , BTN_PRESS_EVT       , BTN_IDLE_ST          ,  BTN_PRESS_EVT       },    /* BTN_IDLE             */  
+    {BTN_S_RELEASE_EVT   , BTN_PRESS_AFT_ST    , BTN_S_RELEASE_EVT    ,  BTN_LONG_PRESSED_EVT},    /* BTN_PRESS_AFT        */
+    {BTN_L_RELEASE_EVT   , BTN_HOLDING_ST      , BTN_L_RELEASE_EVT    ,  BTN_HOLDING_ST      }     /* BTN_HOLDING          */
+};
+#else
 const uint8 cg_aau8StateMachine[13][4] = 
 {
     /*  Situation 1  */    /*  Situation 2 */    /*  Situation 3  */     /* Situation 4  */
@@ -47,7 +68,7 @@ const uint8 cg_aau8StateMachine[13][4] =
     {BTN_IDLE_ST         , BTN_IDLE_ST         , BTN_IDLE_ST          ,  BTN_IDLE_ST         },    /* BTN_S_RELEASED_EVT   */
     {BTN_IDLE_ST         , BTN_IDLE_ST         , BTN_IDLE_ST          ,  BTN_IDLE_ST         }     /* BTN_L_RELEASED_EVT   */
 };
-
+#endif
 
 static T_BTN_PARA *sg_aptBtnPara[MAX_BTN_CH] = {0};          /* Parameter interface          */
 static T_BTN_ST    sg_atBtnSt[MAX_BTN_CH]    = {0};          /* Running status               */
@@ -103,7 +124,13 @@ uint8 Btn_General_Init(PF_GET_TM pfGetTm, PF_GET_BTN pfGetBtnSt)
     {   /* Return if the parameter is invalid */
         return BTN_ERROR;
     }    
-
+#ifndef __BTN_SM_SPECIFIED_BTN_ST_FN
+    /* Check if the input parameter is valid or NOT */
+    if(NULL == pfGetBtnSt) 
+    {   /* Return if the parameter is invalid */
+        return BTN_ERROR;
+    }   
+#endif
     /* If the "Get time" function has NOT registered yet */
     if(NULL == sg_pfGetTm)
     {   /* Register the function */
@@ -153,12 +180,16 @@ uint8 Btn_Channel_Init(uint8 u8Ch ,T_BTN_PARA *ptBtnPara)
         return BTN_ERROR;
     }
 
-    sg_aptBtnPara[u8Ch - 1] = ptBtnPara;                  /* Get the parameters              */
+#ifdef __BTN_SM_SPECIFIED_BTN_ST_FN
+    /* Check if the input parameter is invalid */
+    if(NULL == ptBtnPara)
+    {   /* Return error if parameter is invalid */
+        return BTN_ERROR;
+    }
+#endif
 
-    sg_atBtnSt[u8Ch - 1].u8BtnSt           = BTN_IDLE_ST; /* Init the state of state machine */
-    sg_atBtnSt[u8Ch - 1].u16DebounceOldTm  = 0;           /* Reset debounce timer            */
-    sg_atBtnSt[u8Ch - 1].u16LongPressOldTm = 0;           /* Reset long press timer          */
-    
+    sg_aptBtnPara[u8Ch - 1] = ptBtnPara;        /* Get the parameters              */
+    sg_atBtnSt[u8Ch - 1].u8BtnSt = BTN_IDLE_ST; /* Init the state of state machine */    
     return SUCCESS;
 }
 
@@ -257,7 +288,7 @@ T_BTN_RESULT* Btn_Channel_Process(uint8 u8Ch)
 {
     uint8 u8TmOut  = 0;
     uint8 u8NextSt = 0x00;  
-    uint8 u8BtnSt  = 0;
+    uint8 u8BtnSt;
 
     T_BTN_PARA *ptBtnPara = sg_aptBtnPara[u8Ch - 1];
     T_BTN_ST   *ptBtnSt   = &(sg_atBtnSt[u8Ch - 1]);
@@ -278,15 +309,12 @@ T_BTN_RESULT* Btn_Channel_Process(uint8 u8Ch)
     /* If the function is enabled, go on */
             
     /* Get the state of button first */
-    if(NULL != sg_pfGetBtnSt)                  /* If the general button state function is registered     */
-    {
-        u8BtnSt = sg_pfGetBtnSt(u8Ch);         /* Use the general one  */
-    }
-#ifdef __BTN_SM_SPECIFIED_BTN_ST_FN
-    else                                       /* If the general button state function is NOT registered */   
-    { 
-        u8BtnSt = ptBtnPara->pfGetBtnSt(u8Ch); /* Use the specified one */
-    }
+
+             
+#ifdef __BTN_SM_SPECIFIED_BTN_ST_FN    
+    u8BtnSt = ptBtnPara->pfGetBtnSt(u8Ch); /* Use the specified one */
+#else
+    u8BtnSt = sg_pfGetBtnSt(u8Ch);
 #endif
         
     /* If the state invalid */
@@ -295,13 +323,18 @@ T_BTN_RESULT* Btn_Channel_Process(uint8 u8Ch)
         return NULL;
     }  
 
+    sg_tBtnRes.u8Evt   = BTN_NONE_EVT;
+    sg_tBtnRes.u8State = ptBtnSt->u8BtnSt;
+
+#ifndef __OPT
     switch(ptBtnSt->u8BtnSt)
     {
         case BTN_PRESS_EVT: 
         case BTN_S_RELEASE_EVT: 
         case BTN_L_RELEASE_EVT:
         { 
-            ptBtnSt->u16DebounceOldTm  = sg_pfGetTm();   
+            ptBtnSt->u16DebounceOldTm  = sg_pfGetTm();
+            sg_tBtnRes.u8State = cg_aau8StateMachine[ptBtnSt->u8BtnSt][0];   
             break;
         }
         case BTN_PRESSED_EVT: 
@@ -320,29 +353,50 @@ T_BTN_RESULT* Btn_Channel_Process(uint8 u8Ch)
         case BTN_PRESS_AFT_ST:
         {   
             u8TmOut = ((sg_pfGetTm() - ptBtnSt->u16LongPressOldTm) >= ptBtnPara->u16LongPressTm);
-            /* No break here */
-        }
-        case BTN_IDLE_ST:    
-        case BTN_HOLDING_ST:     
-        {
-            sg_tBtnRes.u8State = ptBtnSt->u8BtnSt;
-            sg_tBtnRes.u8Evt   = BTN_NONE_EVT;
             break;
-        }                                    
+        }
         case BTN_PRESS_PRE_ST:                                                    
         case BTN_SHORT_RELEASE_ST:                                                                                     
         case BTN_LONG_RELEASE_ST:
         {
            u8TmOut = ((sg_pfGetTm() - ptBtnSt->u16DebounceOldTm) >= ptBtnPara->u16DebounceTm);
-           sg_tBtnRes.u8Evt = BTN_NONE_EVT;
            break;
-        }
+        }        
+        case BTN_IDLE_ST:    
+        case BTN_HOLDING_ST:     
         default:              
         {                                                           
             break;
         }
     }
-    
+#else
+    if(ptBtnSt->u8BtnSt < 7)
+    {
+        sg_tBtnRes.u8State = cg_aau8StateMachine[ptBtnSt->u8BtnSt][0];   
+        if(ptBtnSt->u8BtnSt < 3)
+        {
+            ptBtnSt->u16DebounceOldTm  = sg_pfGetTm();
+        }
+        else
+        {
+            sg_tBtnRes.u8Evt   = ptBtnSt->u8BtnSt;
+            if(ptBtnSt->u8BtnSt == 3)
+            {
+                ptBtnSt->u16LongPressOldTm = sg_pfGetTm();
+            }
+        }
+    }
+    else if(ptBtnSt->u8BtnSt < 10)
+    {
+        sg_tBtnRes.u8State += 3;
+        u8TmOut = ((sg_pfGetTm() - ptBtnSt->u16DebounceOldTm) >= ptBtnPara->u16DebounceTm);
+    }
+    else if(ptBtnSt->u8BtnSt == 11)
+    {
+        u8TmOut = ((sg_pfGetTm() - ptBtnSt->u16LongPressOldTm) >= ptBtnPara->u16LongPressTm);
+    }
+
+#endif    
 
     if(u8BtnSt != ptBtnPara->u8NormalSt)
     {
@@ -364,7 +418,5 @@ T_BTN_RESULT* Btn_Channel_Process(uint8 u8Ch)
 
 
 /* end-of-file */
-
-//u8BtnValue = !(GPIOA_PDIR & (1 << 5));
 
 
