@@ -27,16 +27,12 @@
 
 #include "common.h"
 #include "Btn_SM_Module.h"
-#include "KL25_Lpt_Time.h"
 
-static T_BTN_PARA *sg_aptBtnPara[MAX_BTN_CH] = {0};          /* Parameter interface          */
-static T_BTN_ST    sg_atBtnSt[MAX_BTN_CH]    = {0};          /* Running status               */
-static PF_GET_TM   sg_pfGetTm                = NULL;         /* Function to get general time */
-static PF_GET_BTN  sg_pfGetBtnSt             = NULL;         /* Function to get button state */
-
-
-const uint8 c_au8StateMachine[13][4] = 
+const uint8 cg_aau8StateMachine[13][4] = 
 {
+    /*  Situation 1  */    /*  Situation 2 */    /*  Situation 3  */     /* Situation 4  */
+    /* Btn NOT press */    /* Btn press    */    /* Btn NOT press */     /* Btn press    */
+    /* Time NOT out  */    /* Time NOT out */    /* Time out      */     /* Time out     */
     {BTN_IDLE_ST         , BTN_PRESS_EVT       , BTN_IDLE_ST          ,  BTN_PRESS_EVT       },    /* BTN_IDLE             */  
     {BTN_PRESS_PRE_ST    , BTN_PRESS_PRE_ST    , BTN_PRESS_PRE_ST     ,  BTN_PRESS_PRE_ST    },    /* BTN_PRESS_EVT        */
     {BTN_IDLE_ST         , BTN_PRESS_PRE_ST    , BTN_IDLE_ST          ,  BTN_PRESSED_EVT     },    /* BTN_PRESS_PRE        */
@@ -50,79 +46,15 @@ const uint8 c_au8StateMachine[13][4] =
     {BTN_LONG_RELEASE_ST , BTN_HOLDING_ST      , BTN_L_RELEASED_EVT   ,  BTN_HOLDING_ST      },    /* BTN_LONG_RELEASE     */
     {BTN_IDLE_ST         , BTN_IDLE_ST         , BTN_IDLE_ST          ,  BTN_IDLE_ST         },    /* BTN_S_RELEASED_EVT   */
     {BTN_IDLE_ST         , BTN_IDLE_ST         , BTN_IDLE_ST          ,  BTN_IDLE_ST         }     /* BTN_L_RELEASED_EVT   */
-
 };
 
-uint8 g_u8BtnSt = BTN_IDLE;
-uint8 u8BtnValue   = 0;  
 
-T_BTN_RESULT tBtn;
+static T_BTN_PARA *sg_aptBtnPara[MAX_BTN_CH] = {0};          /* Parameter interface          */
+static T_BTN_ST    sg_atBtnSt[MAX_BTN_CH]    = {0};          /* Running status               */
+static PF_GET_TM   sg_pfGetTm                = NULL;         /* Function to get general time */
+static PF_GET_BTN  sg_pfGetBtnSt             = NULL;         /* Function to get button state */
 
-
-uint8 Btn_Sm()
-{
-      
-    static uint16 u16TmD      = 0;
-    static uint16 u16TmL      = 0;
-    uint8 u8TmOutLong  = 0;
-    uint8 u8TmOutShort = 0;               
-    uint8 u8NextSt     = 0x00; 
-    uint16 u16TmDiffD  = 0;
-    uint16 u16TmDiffL  = 0;    
-
-    switch(g_u8BtnSt)
-    {
-    	case BTN_PRESS_EVT: 
-        case BTN_S_RELEASE_EVT: 
-        case BTN_L_RELEASE_EVT:
-        { 
-            u16TmD = (uint16)App_GetSystemTime_ms();   
-            break;
-        }
-        case BTN_PRESSED_EVT: 
-        { 
-            u16TmL = (uint16)App_GetSystemTime_ms();
-            tBtn->u8Evt = g_u8BtnSt
-            break;
-        }
-        case BTN_LONG_PRESSED_EVENT:
-        {
-            tBtn->u8Evt = g_u8BtnSt;
-            break;
-        }
-        case BTN_IDLE_ST:
-    	case BTN_PRESS_PRE_ST:  
-     	case BTN_PRESS_AFT_ST:                                                               
-       	case BTN_HOLDING_ST:                                                   
-    	case BTN_SHORT_RELEASE_ST:                                                                                     
-    	case BTN_LONG_RELEASE_ST:
-    	default:              
-        {                                                         	
-            break;
-        }
-    }
-    
-    u8BtnValue = !(GPIOA_PDIR & (1 << 5));
-
-    if(u8BtnValue == 1)
-    {
-      u8NextSt++;
-    }
-    
-
-    
-    if((((BTN_PRESS_PRE_ST == g_u8BtnSt)||(BTN_SHORT_RELEASE_ST == g_u8BtnSt)||(BTN_LONG_RELEASE_ST == g_u8BtnSt))&&(App_GetSystemDelay_ms(u16TmD)>1000))\
-      ||((BTN_PRESS_AFT_ST == g_u8BtnSt)&&(App_GetSystemDelay_ms(u16TmL)>3000)))
-    {
-      u8NextSt += 2;
-    }
-    
-    // Transition to the next key state according to state machine transition table
-    g_u8BtnSt = c_au8StateMachine[g_u8BtnSt][u8NextSt];
-    
-    return g_u8BtnSt;
-}
-
+static T_BTN_RESULT sg_tBtnRes;
 
 
 /******************************************************************************
@@ -143,8 +75,8 @@ uint8 Btn_Sm()
 ******************************************************************************/
 void Btn_Func_En_Dis(uint8 u8Ch, uint8 u8EnDis)
 {   
-    sg_aptBtnPara[u8Ch - 1]->u8BtnEn = u8EnDis;   /* Enable or Disable the button functions */
-    sg_atBtnSt[u8Ch - 1].u8BtnSt     = BTN_IDLE;  /* Reset the state machine of button      */
+    sg_aptBtnPara[u8Ch - 1]->u8BtnEn = u8EnDis;      /* Enable or Disable the button functions */
+    sg_atBtnSt[u8Ch - 1].u8BtnSt     = BTN_IDLE_ST;  /* Reset the state machine of button      */
 }
 
 /******************************************************************************
@@ -167,7 +99,7 @@ void Btn_Func_En_Dis(uint8 u8Ch, uint8 u8EnDis)
 uint8 Btn_General_Init(PF_GET_TM pfGetTm, PF_GET_BTN pfGetBtnSt)
 {
     /* Check if the input parameter is valid or NOT */
-    if((NULL == pfGetTm) || (NULL == pfGetBtnSt))
+    if(NULL == pfGetTm) 
     {   /* Return if the parameter is invalid */
         return BTN_ERROR;
     }    
@@ -221,26 +153,21 @@ uint8 Btn_Channel_Init(uint8 u8Ch ,T_BTN_PARA *ptBtnPara)
         return BTN_ERROR;
     }
 
-    sg_aptBtnPara[u8Ch - 1] = ptBtnPara;                 /* Get the parameters              */
+    sg_aptBtnPara[u8Ch - 1] = ptBtnPara;                  /* Get the parameters              */
 
-    sg_atBtnSt[u8Ch - 1].u8BtnSt           = BTN_IDLE;   /* Init the state of state machine */
-    sg_atBtnSt[u8Ch - 1].u16DebounceOldTm  = 0;          /* Reset debounce timer            */
-    sg_atBtnSt[u8Ch - 1].u16LongPressOldTm = 0;          /* Reset long press timer          */
+    sg_atBtnSt[u8Ch - 1].u8BtnSt           = BTN_IDLE_ST; /* Init the state of state machine */
+    sg_atBtnSt[u8Ch - 1].u16DebounceOldTm  = 0;           /* Reset debounce timer            */
+    sg_atBtnSt[u8Ch - 1].u16LongPressOldTm = 0;           /* Reset long press timer          */
     
     return SUCCESS;
 }
 
 /******************************************************************************
-* Name       : uint8 Btn_Channel_Process(uint8 u8Ch)
+* Name       : T_BTN_RESULT* Btn_Channel_Process(uint8 u8Ch)
 * Function   : Main process of button checking
 * Input      : uint8 u8Ch             1~255      The number of setting button channel
 * Output:    : None
-* Return     : BTN_ERROR                 Input parameter is invalid
-*              BTN_NONE_EVENT            There is None button operation        
-*              BTN_PRESSED_EVENT         Button is pressed from idle state      
-*              BTN_LONG_PRESSED_EVENT    Button is long pressed                 
-*              BTN_SHORT_RELEASED_EVENT  Button is released before long pressed 
-*              BTN_LONG_RELEASED_EVENT   Button is released after long pressed  
+* Return     : T_BTN_RESULT*                     State and event of button. 
 * description: This function should be called after general init and channel init.
 *              This function should be polled to check button state.
 *              ------------------------------------------------------------------------------
@@ -326,185 +253,118 @@ uint8 Btn_Channel_Init(uint8 u8Ch ,T_BTN_PARA *ptBtnPara)
 * Author     : Ian
 * Date       : 27th Jan 2016
 ******************************************************************************/
-uint8 Btn_Channel_Process(uint8 u8Ch)
+T_BTN_RESULT* Btn_Channel_Process(uint8 u8Ch)
 {
-    uint8 u8Return = BTN_NONE_EVENT;
-    uint8 ucBtnSt;
+    uint8 u8TmOut  = 0;
+    uint8 u8NextSt = 0x00;  
+    uint8 u8BtnSt  = 0;
+
     T_BTN_PARA *ptBtnPara = sg_aptBtnPara[u8Ch - 1];
     T_BTN_ST   *ptBtnSt   = &(sg_atBtnSt[u8Ch - 1]);
-    
+        
     /* Check if the channel number is invalid */
     if((0 == u8Ch) || (u8Ch > MAX_BTN_CH))
     {   /* If the channel number is NOT in the range of 1~MAX_BTN_CH, return error */
-        return BTN_ERROR;
+        return NULL;
     }
 
     /* Check if the button function is enabled or NOT */
     if(ptBtnPara->u8BtnEn != BTN_FUNC_ENABLE)
-    {   /* If the function is NOT enabled, return none event */
-        return BTN_NONE_EVENT;
+    {   /* If the function is NOT enabled, return none event and disabled state */
+        sg_tBtnRes.u8Evt   = BTN_NONE_EVT;
+        sg_tBtnRes.u8State = BTN_DIS_ST;
+        return &sg_tBtnRes;
     }
     /* If the function is enabled, go on */
-        
+            
     /* Get the state of button first */
     if(NULL != sg_pfGetBtnSt)                  /* If the general button state function is registered     */
     {
-        ucBtnSt = sg_pfGetBtnSt(u8Ch);         /* Use the general one  */
+        u8BtnSt = sg_pfGetBtnSt(u8Ch);         /* Use the general one  */
     }
 #ifdef __BTN_SM_SPECIFIED_BTN_ST_FN
     else                                       /* If the general button state function is NOT registered */   
     { 
-        ucBtnSt = ptBtnPara->pfGetBtnSt(u8Ch); /* Use the specified one */
+        u8BtnSt = ptBtnPara->pfGetBtnSt(u8Ch); /* Use the specified one */
     }
 #endif
-    
+        
     /* If the state invalid */
-    if(BTN_ERROR == ucBtnSt)
+    if(BTN_ERROR == u8BtnSt)
     {   /* Return error */
-        return BTN_ERROR;
-    }
+        return NULL;
+    }  
 
-    /* Check state of button state machine */
     switch(ptBtnSt->u8BtnSt)
     {
-        /* If the button is in idle state */
-        case BTN_IDLE:
-        {   /* If the button is pressed */
-            if(ptBtnPara->u8NormalSt != ucBtnSt)
-            {   /* If debounce check time is necessary */
-                if(ptBtnPara->u16DebounceTm)
-                {
-                    ptBtnSt->u8BtnSt          = BTN_PRESS_PRE;      /* Switch the state to BTN_PRESS_PRE for debounce checking */
-                    ptBtnSt->u16DebounceOldTm = sg_pfGetTm();       /* Get the start time of debounce checking                 */
-                }
-                else/* If debounce check time is 0 */
-                {
-                    ptBtnSt->u8BtnSt           = BTN_PRESS_AFT;     /* Switch the state to BTN_PRESS_AFT for long press checking */
-                    ptBtnSt->u16LongPressOldTm = sg_pfGetTm();      /* Get the start time of long press checking                 */
-                    u8Return                   = BTN_PRESSED_EVENT; /* Return Button press event                                 */
-                }
-            }
-            /* If the button is NOT pressed, stay in idle state */
+        case BTN_PRESS_EVT: 
+        case BTN_S_RELEASE_EVT: 
+        case BTN_L_RELEASE_EVT:
+        { 
+            ptBtnSt->u16DebounceOldTm  = sg_pfGetTm();   
             break;
         }
-
-        /* If the buttion is just pressed from the idle state, check debounce */
-        case BTN_PRESS_PRE:
-        {   /* If the button is still pressed */        
-            if(ptBtnPara->u8NormalSt != ucBtnSt)
-            {   /* If the debounce check time is over */
-                if((sg_pfGetTm() - ptBtnSt->u16DebounceOldTm) >= ptBtnPara->u16DebounceTm)
-                {
-                    ptBtnSt->u8BtnSt           = BTN_PRESS_AFT;     /* Switch the state to BTN_PRESS_AFT for long press checking */
-                    ptBtnSt->u16LongPressOldTm = sg_pfGetTm();      /* Get the start time of long press checking                 */
-                    u8Return                   = BTN_PRESSED_EVENT; /* Return Button press event                                 */
-                }
-                /* Else if the debounce check time is NOT over, stay in such state */
-            }
-            else/* If the button is NOT pressed any more */
-            {
-                ptBtnSt->u8BtnSt = BTN_IDLE;                        /* Switch the state back to the idle */
-            }
+        case BTN_PRESSED_EVT: 
+        { 
+            ptBtnSt->u16LongPressOldTm = sg_pfGetTm();
+            /* No break here */
+        }
+        case BTN_LONG_PRESSED_EVT:
+        case BTN_S_RELEASED_EVT:
+        case BTN_L_RELEASED_EVT:
+        {
+            sg_tBtnRes.u8Evt   = ptBtnSt->u8BtnSt;
+            sg_tBtnRes.u8State = cg_aau8StateMachine[ptBtnSt->u8BtnSt][0];
             break;
         }
-
-        /* If the button is still pressed after debounce checking time, check long press time */
-        case BTN_PRESS_AFT:
-        {   /* If the button is still pressed */
-            if(ptBtnPara->u8NormalSt != ucBtnSt)
-            {   /* If the long press time is over */
-                if((sg_pfGetTm() - ptBtnSt->u16LongPressOldTm) >= ptBtnPara->u16LongPressTm)
-                { 
-                    ptBtnSt->u8BtnSt = BTN_HOLDING;                 /* Switch the state to BTN_HOLDING to wait release after long press */
-                    u8Return         = BTN_LONG_PRESSED_EVENT;      /* Return Long press event                                          */
-
-                }
-                /* Else if the long press time is NOT over, stay in such state */
-            }
-            else/* If the button is NOT pressed any more */
-            {   /* If debounce check time is necessary */
-                if(ptBtnPara->u16DebounceTm)
-                {
-                    ptBtnSt->u16DebounceOldTm = sg_pfGetTm();         /* Get the start time of short release debounce time */
-                    ptBtnSt->u8BtnSt          = BTN_SHORT_RELEASE;    /* Switch to BTN_SHORT_RELEASE to check debounce     */
-                }
-                else
-                {
-                    u8Return         = BTN_SHORT_RELEASED_EVENT;      /* Return "release after short press" event          */
-                    ptBtnSt->u8BtnSt = BTN_IDLE;                      /* Switch to BTN_IDLE for next button check          */
-                }
-            }
-            break;
+        case BTN_PRESS_AFT_ST:
+        {   
+            u8TmOut = ((sg_pfGetTm() - ptBtnSt->u16LongPressOldTm) >= ptBtnPara->u16LongPressTm);
+            /* No break here */
         }
-
-        /* If the button is still pressed after long press time, check release event */
-        case BTN_HOLDING:
-        {   /* If the button is released */
-            if(ptBtnPara->u8NormalSt == ucBtnSt)
-            {   /* If debounce check time is necessary */
-                if(ptBtnPara->u16DebounceTm)
-                {
-                    ptBtnSt->u16DebounceOldTm = sg_pfGetTm();            /* Get the start time of release debounce       */
-                    ptBtnSt->u8BtnSt          = BTN_LONG_RELEASE;        /* Switch to BTN_LONG_RELEASE to check debounce */
-                }
-                else/* If the debounce check time is 0 */
-                {
-                    ptBtnSt->u8BtnSt          = BTN_IDLE;                /* Switch to BTN_IDLE for next button check */
-                    u8Return                  = BTN_LONG_RELEASED_EVENT; /* Return release after long pressed event  */
-                }
-            }
-            /* If the button is still pressed, stay in such state */
+        case BTN_IDLE_ST:    
+        case BTN_HOLDING_ST:     
+        {
+            sg_tBtnRes.u8State = ptBtnSt->u8BtnSt;
+            sg_tBtnRes.u8Evt   = BTN_NONE_EVT;
             break;
+        }                                    
+        case BTN_PRESS_PRE_ST:                                                    
+        case BTN_SHORT_RELEASE_ST:                                                                                     
+        case BTN_LONG_RELEASE_ST:
+        {
+           u8TmOut = ((sg_pfGetTm() - ptBtnSt->u16DebounceOldTm) >= ptBtnPara->u16DebounceTm);
+           sg_tBtnRes.u8Evt = BTN_NONE_EVT;
+           break;
         }
-
-        /* If the button is relased before the long press, check release debounce */
-        case BTN_SHORT_RELEASE:
-        {   /* If button is still released*/
-            if(ptBtnPara->u8NormalSt == ucBtnSt)
-            {   /* If the release debounce time is over */
-                if((sg_pfGetTm() - ptBtnSt->u16DebounceOldTm) >= ptBtnPara->u16DebounceTm)
-                {
-                    u8Return         = BTN_SHORT_RELEASED_EVENT;      /* Return "release after short press" event          */
-                    ptBtnSt->u8BtnSt = BTN_IDLE;                      /* Switch to BTN_IDLE for next button check          */
-                }
-                /* If the release debounce time is NOT over, stay in such state */
-            }
-            else/* If button is pressed again */
-            {
-                ptBtnSt->u8BtnSt     = BTN_PRESS_AFT;                 /* Switch back to BTN_PRESS_AFT to check long press */
-            }
-            break;
-        }
-        
-        /* If the button is released after long pressed, check release debounce */
-        case BTN_LONG_RELEASE:
-        {   /* If the button is still released */
-            if(ptBtnPara->u8NormalSt == ucBtnSt)
-            {   /* If the release debounce time is over */
-                if((sg_pfGetTm() - ptBtnSt->u16DebounceOldTm) >= ptBtnPara->u16DebounceTm)
-                {
-                    u8Return         = BTN_LONG_RELEASED_EVENT;     /* Return "release after long press" event  */
-                    ptBtnSt->u8BtnSt = BTN_IDLE;                    /* Switch to BTN_IDLE for next button check */
-                }
-                /* If the release debounce time is NOT over, stay in such state */
-            }
-            else/* If the button is pressed again */
-            {
-                ptBtnSt->u8BtnSt = BTN_HOLDING;                     /* Switch back to BTN_HOLDING state         */
-            }
+        default:              
+        {                                                           
             break;
         }
     }
-        
-    return u8Return;
+    
+
+    if(u8BtnSt != ptBtnPara->u8NormalSt)
+    {
+      u8NextSt++;
+    }
+    
+    if(u8TmOut)
+    {
+      u8NextSt += 2;
+    }
+      
+    ptBtnSt->u8BtnSt = cg_aau8StateMachine[ptBtnSt->u8BtnSt][u8NextSt];
+    
+    return &sg_tBtnRes;
 }
 
 
 
 
 
-
-
 /* end-of-file */
+
+//u8BtnValue = !(GPIOA_PDIR & (1 << 5));
 
 
