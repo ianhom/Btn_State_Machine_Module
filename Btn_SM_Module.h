@@ -38,22 +38,25 @@ extern "C" {
 #define MAX_BTN_CH                   (1)         /* Max number of buttons, please define it in upper layer */
 #endif
 
-#define BTN_SM_SPECIFIED_BTN_ST_FN               /* Use specified button state get function             */
+#define BTN_SM_SPECIFIED_BTN_ST_FN               /* Use specified button state get function                */
+
 
 /* States of button state machine */
-#define BTN_IDLE                     (0)         /* Button is NOT pressed or released                   */
-#define BTN_PRESS_PRE                (1)         /* Button is pressed before debounce                   */
-#define BTN_PRESS_AFT                (2)         /* Button is short pressed after debounce              */
-#define BTN_HOLDING                  (4)         /* Button is long pressed                              */
-#define BTN_SHORT_RELEASE            (5)         /* Button is released before debounce form short press */
-#define BTN_LONG_RELEASE             (6)         /* Button is released before debounce form long press  */
-
-/* Return events */
-#define BTN_NONE_EVENT               (0)         /* There is None button operation         */
-#define BTN_PRESSED_EVENT            (1)         /* Button is pressed from idle state      */
-#define BTN_LONG_PRESSED_EVENT       (2)         /* Button is long pressed                 */
-#define BTN_SHORT_RELEASED_EVENT     (3)         /* Button is released before long pressed */
-#define BTN_LONG_RELEASED_EVENT      (4)         /* Button is released after long pressed  */
+#define BTN_IDLE_ST                  (0)         /* Button is NOT pressed or released                      */
+#define BTN_PRESS_EVT                (1)         /* Button just pressed event                              */
+#define BTN_PRESS_PRE_ST             (2)         /* Button is pressed before debounce                      */
+#define BTN_PRESSED_EVT              (3)         /* Button pressed totally event                           */
+#define BTN_PRESS_AFT_ST             (4)         /* Button is short pressed after debounce                 */
+#define BTN_LONG_PRESSED_EVT         (5)         /* Button is long pressed                                 */
+#define BTN_HOLDING_ST               (6)         /* Button is long pressed                                 */
+#define BTN_S_RELEASE_EVT            (7)         /* Button just short released event                       */
+#define BTN_L_RELEASE_EVT            (8)         /* Button just long released event                        */
+#define BTN_SHORT_RELEASE_ST         (9)         /* Button is released before debounce form short press    */
+#define BTN_LONG_RELEASE_ST          (10)        /* Button is released before debounce form long press     */
+#define BTN_S_RELEASED_EVT           (11)        /* Button short released totally event                    */
+#define BTN_L_RELEASED_EVT           (12)        /* Button long released totally event                     */
+#define BTN_NONE_EVT                 (13)
+#define BTN_DIS_ST                   (14)
 
 #define SUCCESS                      (0)         /* Correct condition                 */
 #define BTN_ERROR                    (0xFF)      /* Error condition                   */
@@ -124,6 +127,12 @@ typedef struct _T_BTN_PARA_
     uint8       u8Ch;               /* Channel number of button        */
 }T_BTN_PARA;
 
+typedef struct _T_BTN_RESULT
+{
+    uint8       u8Evt;
+    uint8       u8State;
+}T_BTN_RESULT;
+
 
 /*******************************************************************************
 * Structure  : T_BTN_ST
@@ -144,8 +153,6 @@ typedef struct _T_BTN_ST_
     uint16  u16LongPressOldTm;      /* The start time of long press check */
     uint8   u8BtnSt;                /* The state of state machine         */
 }T_BTN_ST;
-
-
 
 
 /* Function declaration */
@@ -301,7 +308,8 @@ uint8 Btn_Channel_Init(uint8 u8Ch ,T_BTN_PARA *ptBtnPara);
 * Author     : Ian
 * Date       : 27th Jan 2016
 ******************************************************************************/
-uint8 Btn_Channel_Process(uint8 u8Ch);
+    T_BTN_RESULT* Btn_Channel_Process(uint8 u8Ch);
+
 
 
 
