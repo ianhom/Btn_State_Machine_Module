@@ -39,8 +39,29 @@ extern "C" {
 #endif
 
 #define BTN_SM_SPECIFIED_BTN_ST_FN               /* Use specified button state get function                */
+#define __OPT
+
+#ifdef __OPT
+
+/* States of button state machine */
+#define BTN_PRESS_EVT                (0)         /* Button just pressed event                              */
+#define BTN_S_RELEASE_EVT            (1)         /* Button just short released event                       */
+#define BTN_L_RELEASE_EVT            (2)         /* Button just long released event                        */
+#define BTN_PRESSED_EVT              (3)         /* Button pressed totally event                           */
+#define BTN_LONG_PRESSED_EVT         (4)         /* Button is long pressed                                 */
+#define BTN_S_RELEASED_EVT           (5)        /* Button short released totally event                    */
+#define BTN_L_RELEASED_EVT           (6)        /* Button long released totally event                     */
+#define BTN_PRESS_PRE_ST             (7)         /* Button is pressed before debounce                      */
+#define BTN_SHORT_RELEASE_ST         (8)         /* Button is released before debounce form short press    */
+#define BTN_LONG_RELEASE_ST          (9)        /* Button is released before debounce form long press     */
+#define BTN_IDLE_ST                  (10)         /* Button is NOT pressed or released                      */
+#define BTN_PRESS_AFT_ST             (11)         /* Button is short pressed after debounce                 */
+#define BTN_HOLDING_ST               (12)         /* Button is long pressed                                 */
 
 
+#define BTN_NONE_EVT                 (13)
+#define BTN_DIS_ST                   (14)
+#else
 /* States of button state machine */
 #define BTN_IDLE_ST                  (0)         /* Button is NOT pressed or released                      */
 #define BTN_PRESS_EVT                (1)         /* Button just pressed event                              */
@@ -57,6 +78,9 @@ extern "C" {
 #define BTN_L_RELEASED_EVT           (12)        /* Button long released totally event                     */
 #define BTN_NONE_EVT                 (13)
 #define BTN_DIS_ST                   (14)
+
+#endif
+
 
 #define SUCCESS                      (0)         /* Correct condition                 */
 #define BTN_ERROR                    (0xFF)      /* Error condition                   */
