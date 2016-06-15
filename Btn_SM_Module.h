@@ -55,14 +55,8 @@ extern "C" {
 #define BTN_LONG_RELEASE_ST          (10)        /* Button is released before debounce form long press     */
 #define BTN_S_RELEASED_EVT           (11)        /* Button short released totally event                    */
 #define BTN_L_RELEASED_EVT           (12)        /* Button long released totally event                     */
-
-
-/* Return events */
-#define BTN_NONE_EVENT               (0)         /* There is None button operation         */
-#define BTN_PRESSED_EVENT            (1)         /* Button is pressed from idle state      */
-#define BTN_LONG_PRESSED_EVENT       (2)         /* Button is long pressed                 */
-#define BTN_SHORT_RELEASED_EVENT     (3)         /* Button is released before long pressed */
-#define BTN_LONG_RELEASED_EVENT      (4)         /* Button is released after long pressed  */
+#define BTN_NONE_EVT                 (13)
+#define BTN_DIS_ST                   (14)
 
 #define SUCCESS                      (0)         /* Correct condition                 */
 #define BTN_ERROR                    (0xFF)      /* Error condition                   */
@@ -159,9 +153,6 @@ typedef struct _T_BTN_ST_
     uint16  u16LongPressOldTm;      /* The start time of long press check */
     uint8   u8BtnSt;                /* The state of state machine         */
 }T_BTN_ST;
-
-
-uint8 Btn_Sm();
 
 
 /* Function declaration */
@@ -317,7 +308,8 @@ uint8 Btn_Channel_Init(uint8 u8Ch ,T_BTN_PARA *ptBtnPara);
 * Author     : Ian
 * Date       : 27th Jan 2016
 ******************************************************************************/
-uint8 Btn_Channel_Process(uint8 u8Ch);
+    T_BTN_RESULT* Btn_Channel_Process(uint8 u8Ch);
+
 
 
 
