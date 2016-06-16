@@ -22,13 +22,19 @@
 *              Button function can be enabled/disabled by calling "Btn_Func_En_Dis()".              
 * Version    : V1.10
 * Author     : Ian
-* Date       : 27th Jan 2016
+* Date       : 15th Jun 2016
+* History    :  No.  When          Who   Version   What        
+*               1    27/Jan/2016   Ian   V1.00     Create      
+*               2    15/Jun/2016   Ian   V1.10     Re-design the state machine with state
+*                                                  table, return "Event" and "State"                                                          
 ******************************************************************************/
 
 #include "common.h"
+#include "Btn_SM_Config.h"
 #include "Btn_SM_Module.h"
 
-const uint8 cg_aau8StateMachine[13][4] = 
+/* State transition table */
+const uint8 cg_aau8StateMachine[BTN_STATE_NUM][BTN_TRG_NUM] = 
 {
     /*  Situation 1  */    /*  Situation 2 */    /*  Situation 3  */     /* Situation 4  */
     /* Btn NOT press */    /* Btn press    */    /* Btn NOT press */     /* Btn press    */
@@ -101,21 +107,22 @@ uint8 Btn_General_Init(PF_GET_TM pfGetTm, PF_GET_BTN pfGetBtnSt)
     if(NULL == pfGetTm) 
     {   /* Return if the parameter is invalid */
         return BTN_ERROR;
-    }    
-#ifndef __BTN_SM_SPECIFIED_BTN_ST_FN
-    /* Check if the input parameter is valid or NOT */
-    if(NULL == pfGetBtnSt) 
-    {   /* Return if the parameter is invalid */
-        return BTN_ERROR;
-    }   
-#endif
+    }
+    
     /* If the "Get time" function has NOT registered yet */
     if(NULL == sg_pfGetTm)
     {   /* Register the function */
         sg_pfGetTm = pfGetTm;
     }
     /* If the "Get time" function has already registered, Do NOT re-register */
-    
+
+
+#ifndef __BTN_SM_SPECIFIED_BTN_ST_FN
+    /* Check if the input parameter is valid or NOT */
+    if(NULL == pfGetBtnSt) 
+    {   /* Return if the parameter is invalid */
+        return BTN_ERROR;
+    }   
 
     /* If the "Get button state" function has NOT registered yet */
     if(NULL == sg_pfGetBtnSt)
@@ -123,7 +130,12 @@ uint8 Btn_General_Init(PF_GET_TM pfGetTm, PF_GET_BTN pfGetBtnSt)
         sg_pfGetBtnSt = pfGetBtnSt;
     }
     /* If the "Get button state" function has already registered, Do NOT re-regiter */
-    
+#else
+    /* If each button use specified button state getting function*/
+    /* pfGetBtnSt will be useless                                */
+    (void)pfGetBtnSt;             /* Avoid warning from complier */
+#endif
+
     return SUCCESS;
 }
 
