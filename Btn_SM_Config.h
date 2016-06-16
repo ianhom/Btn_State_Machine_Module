@@ -25,6 +25,10 @@ extern "C" {
 /* If you want to use specified button state getting function, define the MARCO */
 //#define BTN_SM_SPECIFIED_BTN_ST_FN             /* Use specified button state getting function  */
 
+typedef unsigned char       uint8;
+typedef unsigned short int  uint16;
+typedef unsigned int        uint32;
+
 
 #endif
 
