@@ -20,9 +20,13 @@
 *              Step 6: Call "Btn_Channel_Init()" per channel to init every button channel.
 *              Step 7: Poll "Btn_Channel_Process()" per channel to check button state.
 *              Button function can be enabled/disabled by calling "Btn_Func_En_Dis()".              
-* Version    : V1.00
+* Version    : V1.10
 * Author     : Ian
-* Date       : 27th Jan 2016
+* Date       : 15th Jun 2016
+* History    :  No.  When          Who   Version   What        
+*               1    27/Jan/2016   Ian   V1.00     Create      
+*               2    15/Jun/2016   Ian   V1.10     Re-design the state machine with state
+*                                                  table, return "Event" and "State"   
 ******************************************************************************/
 
 
@@ -35,30 +39,41 @@ extern "C" {
 #endif
   
 #ifndef MAX_BTN_CH
-#define MAX_BTN_CH                   (2)         /* Max number of buttons, please define it in upper layer */
+#define MAX_BTN_CH                   (1)         /* Max number of buttons, please define it in upper layer */
 #endif
 
-#define BTN_SM_SPECIFIED_BTN_ST_FN               /* Use specified button state get function                */
+#define BTN_STATE_NUM                (13)        /* The number of states in state machine               */
+#define BTN_TRG_NUM                  (4)         /* The number of trigger event in state machine        */
 
 /* States of button state machine */
-#define BTN_PRESS_EVT                (0)         /* Button just pressed event                              */
-#define BTN_S_RELEASE_EVT            (1)         /* Button just short released event                       */
-#define BTN_L_RELEASE_EVT            (2)         /* Button just long released event                        */
-#define BTN_PRESSED_EVT              (3)         /* Button pressed totally event                           */
-#define BTN_LONG_PRESSED_EVT         (4)         /* Button is long pressed                                 */
-#define BTN_S_RELEASED_EVT           (5)         /* Button short released totally event                    */
-#define BTN_L_RELEASED_EVT           (6)         /* Button long released totally event                     */
-#define BTN_PRESS_PRE_ST             (7)         /* Button is pressed before debounce                      */
-#define BTN_SHORT_RELEASE_ST         (8)         /* Button is released before debounce form short press    */
-#define BTN_LONG_RELEASE_ST          (9)         /* Button is released before debounce form long press     */
-#define BTN_IDLE_ST                  (10)        /* Button is NOT pressed or released                      */
-#define BTN_PRESS_AFT_ST             (11)        /* Button is short pressed after debounce                 */
-#define BTN_HOLDING_ST               (12)        /* Button is long pressed                                 */
-#define BTN_NONE_EVT                 (13)
-#define BTN_DIS_ST                   (14)
+#define BTN_PRESS_EVT                (0)         /* Button just pressed event                           */
+#define BTN_S_RELEASE_EVT            (1)         /* Button just short released event                    */
+#define BTN_L_RELEASE_EVT            (2)         /* Button just long released event                     */
+#define BTN_PRESSED_EVT              (3)         /* Button pressed totally event                        */
+#define BTN_LONG_PRESSED_EVT         (4)         /* Button is long pressed                              */
+#define BTN_S_RELEASED_EVT           (5)         /* Button short released totally event                 */
+#define BTN_L_RELEASED_EVT           (6)         /* Button long released totally event                  */
+
+#define BTN_PRESS_PRE_ST             (7)         /* Button is pressed before debounce                   */
+#define BTN_SHORT_RELEASE_ST         (8)         /* Button is released before debounce form short press */
+#define BTN_LONG_RELEASE_ST          (9)         /* Button is released before debounce form long press  */
+#define BTN_IDLE_ST                  (10)        /* Button is NOT pressed or released                   */
+#define BTN_PRESS_AFT_ST             (11)        /* Button is short pressed after debounce              */
+#define BTN_HOLDING_ST               (12)        /* Button is long pressed                              */
+#define BTN_NONE_EVT                 (13)        /* No event with the button                            */
+#define BTN_DIS_ST                   (14)        /* Button is disabled                                  */
+
+#define BTN_GO_BACK_OFFSET           (3)         /* Offset betwen debounce state and previous ones      */
+#define BTN_TM_TRG_EVT_OFFSET        (2)         /* Offset for time out trigger in state table          */
 
 #define SUCCESS                      (0)         /* Correct condition                 */
 #define BTN_ERROR                    (0xFF)      /* Error condition                   */
+
+#ifdef NULL
+#undef NULL
+#define NULL                         (0)         /* Null type potinter                                  */
+#endif
+
 
 /* Parameters */
 #define BTN_FUNC_ENABLE              (1)         /* Button input function is enabled  */
@@ -126,10 +141,23 @@ typedef struct _T_BTN_PARA_
     uint8       u8Ch;               /* Channel number of button        */
 }T_BTN_PARA;
 
+/*******************************************************************************
+* Structure  : T_BTN_RESULT
+* Description: Structure of button result: Event & State.
+* Memebers   : Type    Member   Range                 Descrption     
+*              uint8   u8Evt    BTN_PRESSED_EVT       Button is just short pressed
+*                               BTN_LONG_PRESSED_EVT  Button is just long pressed
+*                               BTN_S_RELEASED_EVT    Button is just released from short press
+*                               BTN_L_RELEASED_EVT    Button is just released from long press
+*              uint8   u8State  BTN_IDLE_ST           Button is in idle state
+*                               BTN_PRESS_AFT_ST      Button is in short pressed state
+*                               BTN_HOLDING_ST        Button is in long pressed state
+*                               BTN_DIS_ST            Butoon is disabled
+*******************************************************************************/
 typedef struct _T_BTN_RESULT
 {
-    uint8       u8Evt;
-    uint8       u8State;
+    uint8       u8Evt;         /* Event of button */
+    uint8       u8State;       /* State of button */
 }T_BTN_RESULT;
 
 
