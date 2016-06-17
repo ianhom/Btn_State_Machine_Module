@@ -31,31 +31,65 @@
       </header>
       <section>
         <h1>
-<a id="btn_state_machine_module" class="anchor" href="#btn_state_machine_module" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Btn_State_Machine_Module</h1>
+<a id="btn_state_machine_module" class="anchor" href="#btn_state_machine_module" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a><strong>Btn_State_Machine_Module</strong>
+</h1>
 
 <h2>
-<a id="简介" class="anchor" href="#%E7%AE%80%E4%BB%8B" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>简介</h2>
+<a id="简介" class="anchor" href="#%E7%AE%80%E4%BB%8B" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a><strong>简介</strong>:</h2>
 
 <p>一直在做代码模块化的工作，分享一个自己写的按键扫描模块，欢迎大家试用。<br>
-计划长期更新，本人能力有限，有错误之处欢迎指正交流，我将根据大家的反馈进行修改优化，提供更可靠的软件模块给大家。   </p>
+本模块计划长期更新，本人能力有限，有错误之处欢迎指正交流，我将根据大家的反馈进行修改优化，提供更可靠的软件模块给大家。   </p>
+
+<hr>
+
+<p><strong>更新说明</strong><br>
+<strong>2016年6月15日</strong>： 本模块目前更新至V1.10，相比于采用switch状态机的V1.00版本，V1.10的状态机采用了状态转移表来实现，在增加状态数量和功能的前提下，不仅提高了执行效率，同时减少了10%的FLASH消耗。</p>
 
 <h2>
-<a id="说明" class="anchor" href="#%E8%AF%B4%E6%98%8E" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>说明：</h2>
+<a id="说明" class="anchor" href="#%E8%AF%B4%E6%98%8E" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a><strong>说明</strong>：</h2>
+
+<h3>
+<a id="本模块可灵活配置如下参数" class="anchor" href="#%E6%9C%AC%E6%A8%A1%E5%9D%97%E5%8F%AF%E7%81%B5%E6%B4%BB%E9%85%8D%E7%BD%AE%E5%A6%82%E4%B8%8B%E5%8F%82%E6%95%B0" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>本模块可灵活配置如下参数：</h3>
 
 <ul>
-<li>本模块可根据按键的按下及释放的状态向上层反馈“按键按下事件”，“按键短按释放事件”，“按键长按事件”和“按键长按释放事件”以满足应用中对按键不同类型操作的检测。<br>
+<li>按键数量；</li>
+<li>按键常开常闭类型（未按下时稳态值）；</li>
+<li>按键检测使能/非能控制；</li>
+<li>按键去抖时间；</li>
+<li>按键长按识别时间；</li>
+<li>每个按键独立的按键状态获取函数。</li>
+</ul>
+
+<h3>
+<a id="本模块可以为上层提供" class="anchor" href="#%E6%9C%AC%E6%A8%A1%E5%9D%97%E5%8F%AF%E4%BB%A5%E4%B8%BA%E4%B8%8A%E5%B1%82%E6%8F%90%E4%BE%9B" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>本模块可以为上层提供：</h3>
+
+<ul>
+<li>
+<p>按键事件（瞬态）：</p>
+
+<ul>
+<li>BTN_PRESSED_EVT        按键刚被短按；</li>
+<li>BTN_LONG_PRESSED_EVT   按键刚被长按；</li>
+<li>BTN_S_RELEASED_EVT     按键刚从短按状态下释放；</li>
+<li>BTN_L_RELEASED_EVT     按键刚从长按状态下释放。</li>
+</ul>
 </li>
-<li>自带软件去抖，长短按识别。<br>
+<li>
+<p>按键状态（稳态）：</p>
+
+<ul>
+<li>BTN_IDLE_ST            按键处于空闲状态（未按下）；</li>
+<li>BTN_PRESS_AFT_ST       按键处于短按状态；</li>
+<li>BTN_HOLDING_ST         按键处于长按状态。</li>
+</ul>
 </li>
-<li>按键常态（常开常闭）可配、去抖时间及长按识别时间可调、按键功能可屏蔽/开启，上述功能每个按键可以单独配置不同功能；按键数量可配。</li>
-<li>采用状态机实现，不拖累系统效率。</li>
-<li>本软件模块不限定平台，任何平台都可以用（目标如此）。</li>
 </ul>
 
 <h2>
-<a id="资源消耗参考" class="anchor" href="#%E8%B5%84%E6%BA%90%E6%B6%88%E8%80%97%E5%8F%82%E8%80%83" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>资源消耗参考：</h2>
+<a id="资源消耗参考" class="anchor" href="#%E8%B5%84%E6%BA%90%E6%B6%88%E8%80%97%E5%8F%82%E8%80%83" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a><strong>资源消耗参考</strong>：</h2>
 
-<p>M0+内核 + IAR 下 Low优化等级：  </p>
+<h3>
+<a id="m0内核--iar-下-low优化等级" class="anchor" href="#m0%E5%86%85%E6%A0%B8--iar-%E4%B8%8B-low%E4%BC%98%E5%8C%96%E7%AD%89%E7%BA%A7" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>M0+内核 + IAR 下 Low优化等级：</h3>
 
 <table>
 <thead>
@@ -70,36 +104,34 @@
 <tr>
 <td>代码</td>
 <td>Flash</td>
-<td>524字节</td>
-<td>无</td>
+<td>468字节</td>
+<td>程序416字节 + 52字节的状态转移表</td>
 </tr>
 <tr>
 <td>配置参数/状态/接口变量</td>
 <td>RAM静态储存区</td>
-<td>n*22+字节</td>
-<td>n为按键数量，22为平均值（因地址对齐原因会有所变化）</td>
+<td>n*20 + 8字节</td>
+<td>n为按键数量</td>
 </tr>
 <tr>
 <td>临时变量/函数调用开销</td>
 <td>RAM栈区域</td>
-<td>待测</td>
+<td>40字节</td>
 <td>无</td>
 </tr>
 </tbody>
 </table>
 
 <h2>
-<a id="使用方法" class="anchor" href="#%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>使用方法：</h2>
+<a id="使用方法" class="anchor" href="#%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a><strong>使用方法</strong>：</h2>
 
 <ol>
-<li>将Btn_SM_Module.c文件导入IDE工程，增加Btn_SM_Module.h的包含路径。</li>
-<li>修改Btn_SM_Module.h中MAX_BTN_CH的值为按键数量（或在该模块上层重新定义该宏，推荐!）</li>
-<li>编写系统时间获取函数，函数要求见Btn_SM_Module.h</li>
-<li>编写按键状态（逻辑1/0）获取函数，函数要求见Btn_SM_Module.h。注意这里可以通过宏定义__BTN_SM_SPECIFIED_BTN_ST_FN来选择使用同一的按键状态获取函数或每个按键独立的按键状态获取函数。</li>
-<li>复制Btn_SM_Module.h中的Demo代码，创建配置参数的结构体并根据要求进行初始化配置（去抖时间，长按时间，按键常态、是否使能按键）</li>
-<li>调用一次Btn_General_Init()进行通用初始化</li>
-<li>调用n次"Btn_Channel_Init()"进行各个按键通道的初始化（n为按键数量）</li>
-<li>轮询Btn_Channel_Process()进行各个按键通道的状态，通过该函数返回值确定按键返回状态：短按、长按、短按释放、长按释放及无状态。</li>
+<li>将Btn_SM_Module.c文件导入IDE工程，增加Btn_SM_Module.h和Btn_SM_Config.h的包含路径。</li>
+<li>修改Btn_SM_Config.h中MAX_BTN_CH的值为按键数量, 如需要为每个按键定义独立的“按键状态获取函数”，可在Btn_SM_Config.h定义 __BTN_SM_SPECIFIED_BTN_ST_FN</li>
+<li>编写系统时间获取函数，要求反馈系统ms时钟，类型为 uint16 (*)();</li>
+<li>编写按键状态获取函数，要求根据输入参数通道号反馈对应按键状态（逻辑1/0），类型为 uint8 (*)(uint8 u8Ch)。</li>
+<li>参考Btn_SM_Demo.c的代码，若需快速配置，可调用Btn_SM_Easy_Init()函数初始化模块；或参考Btn_SM_Easy_Init()函数，创建配置参数结构体实体并根据需求进行初始化配置（按键编号、去抖时间，长按时间，按键常态、是否使能按键、按键状态获取函数）和进行初始化工作。</li>
+<li>轮询Btn_Channel_Process()进行各个按键通道的状态，通过该函数输出参数确定按键返回事件及状态。</li>
 <li>通过Btn_Func_En_Dis()可在初始化之后屏蔽或启用按键功能。</li>
 </ol>
       </section>
