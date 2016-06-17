@@ -114,8 +114,10 @@ void Btn_Func_En_Dis(uint8 u8Ch, uint8 u8EnDis)
 * description: This function should be called once before use button checking.
 *              This function get two necessary interface function: 
 *              "pfGetTm()":Function to get gengeral time;
-*              "pfGetBtnSt":Function to get button state(0/1).
-*              If the general init is failed, DO NOT continue!!
+*              "pfGetBtnSt":Function to get button state(0/1). (if the MACRO 
+*              __BTN_SM_SPECIFIED_BTN_ST_FN is NOT defined)
+*
+*              NOTE:If the general init is failed, DO NOT continue!!
 * Version    : V1.00
 * Author     : Ian
 * Date       : 27th Jan 2016
@@ -161,16 +163,17 @@ uint8 Btn_General_Init(PF_GET_TM pfGetTm, PF_GET_BTN pfGetBtnSt)
 /******************************************************************************
 * Name       : uint8 Btn_Channel_Init(uint8 u8Ch ,T_BTN_PARA *ptBtnPara)
 * Function   : Init operation for each button channel
-* Input      : uint8 u8Ch             1~255      The number of setting button channel
+* Input      : uint8       u8Ch      1~255      The number of setting button channel
 *              T_BTN_PARA *ptBtnPara             Parameter of each button channel
 * Output:    : None
 * Return     : BTN_ERROR        Input parameter is invalid
 *              SUCCESS          Init operation is successed
-* description: After general init operation, call this function for each channel.
-*              Call this function before button checking,  If the channel init 
-*              is failed, DO NOT continue!!
+* description: After general init operation, call this function for each channel
+*              before button checking.  
 *              This function save the parameter structure pointer for further 
 *              operation, and init running state of such channel.
+*
+*              NOTE:If the channel init is failed, DO NOT continue!!
 * Version    : V1.00
 * Author     : Ian
 * Date       : 27th Jan 2016
@@ -204,60 +207,109 @@ uint8 Btn_Channel_Init(uint8 u8Ch ,T_BTN_PARA *ptBtnPara)
 }
 
 /******************************************************************************
-* Name       : T_BTN_RESULT* Btn_Channel_Process(uint8 u8Ch)
+* Name       : uint8 Btn_Channel_Process(uint8 u8Ch, T_BTN_RESULT* ptBtnRes)
 * Function   : Main process of button checking
-* Input      : uint8 u8Ch             1~255      The number of setting button channel
-* Output:    : None
-* Return     : T_BTN_RESULT*                     State and event of button. 
+* Input      : uint8         u8Ch       1~255                 The number of setting button channel
+* Output:    : T_BTN_RESULT* ptBtnRes
+*                             ->u8Evt   BTN_PRESSED_EVT       Button is just short pressed
+*                                       BTN_LONG_PRESSED_EVT  Button is just long pressed
+*                                       BTN_S_RELEASED_EVT    Button is just released from short press
+*                                       BTN_L_RELEASED_EVT    Button is just released from long press
+*                             ->u8State BTN_IDLE_ST           Button is in idle state
+*                                       BTN_PRESS_AFT_ST      Button is in short pressed state
+*                                       BTN_HOLDING_ST        Button is in long pressed state
+*                                       BTN_DIS_ST            Butoon is disabled
+* Return     : BTN_ERROR     Input parameter or button state is invalid
+*              SUCCESS       Process operation is successed
 * description: This function should be called after general init and channel init.
-*              This function should be polled to check button state.
+*              This function should be polled to check button event and state.
 *              ------------------------------------------------------------------------------
-*             | No.1 Demo of long press and release
-*             |           ___________ _______________ __________________ 
+*             | No.1 Demo of long press and release with debounce check
+*             |  ________                                                ______________ ________
 *             |          |  Debounce |               |                  |   Debounce   |
 *             |    Idle  | Press PRE |  Press AFT    |    Holding       |   Long Rls   |  Idle   
 *             |  (output)|           |   (output)    |   (output)       |              | (output)     
-*             |  ________|           |               |                  |______________|________
+*             |          |___________|_______________|__________________|              |
 *             |          |           |               |                  |              |
 *             |          V           V               V                  V              V
 *             |     Press Evt    Pressed Evt   Long pressed Evt   Long release Evt   Long released Evt
 *             |                   (output)        (output)                             (output)
 *             |
-*             | Note: At the first stage, button is in "idle" state, if the button is pressed,
-*             |       it will switch to "press pre" state which is used to check debounce. If
-*             |       button is released in this state, it will switch back to "idle" state.
-*             |       If the button is still pressed and the debounce check time is over, 
-*             |       function will returns a "Press event" and switch to "press after" state 
-*             |       in which state, long press will be checked here. If button is released 
-*             |       at this time, please see No.2 Demo; If button is still pressed and long
-*             |       press time is over, function will return a "Long press event" and switch
-*             |       to "Holding" state, in"holding" state it will wait button releasing, if
-*             |       button is released, it will switch to "long release" state to do debounce
-*             |       Checking. If button is re-pressed again, it will switch back to "Holding"
-*             |       state; If button is still released, function returns a "Long release event"
-*             |       and switch to "idle" state for next button checking.
+*             | Note: At the first stage, button is in "Idle" state, if the button is pressed,
+*             |       it will switch to "Press Evt" and start timing for debounce check, then
+*             |       switch to "Press PRE". If the button is release at this time, it will 
+*             |       switch back to "Idle". If the button is still pressed and debounce check
+*             |       time is out, switch to "Pressed Evt", start long-pressed timing and output
+*             |       event to caller, then switch to "Press AFT". If button is released now,
+*             |       please refer to No.2 demo. when long-pressed time is out in "Press AFT",
+*             |       switch to "Long pressed Evt" and output event to caller. Then switch to
+*             |       "Holding". If button is released at this moment, switch to "Long release 
+*             |       Evt" and start timing for debounce check. Then switch to "Long Rls". If 
+*             |       button is pressed again, swtich back to "Holding". If button is still
+*             |       released and debounce time is out, siwtch to "Long released Evt" and 
+*             |       output event to caller. At the last, switch to "Idle" for next checking.
 *              ------------------------------------------------------------------------------
-*             | No.2 Demo of short press and release
-*             |           ___________ _______________ 
+*             | No.2 Demo of short press and release with debounce check
+*             |  ________                             _____________ ________ 
 *             |          |  Debounce |               |  Debounce   |
 *             |    Idle  | Press PRE |   Press AFT   |  Short Rls  |  Idle         
 *             |  (output)|           |   (output)    |             | (output)
-*             |  ________|           |               |_____________|________
+*             |          |___________|_______________|             |
 *             |          |           |               |             |
 *             |          V           V               V             V
 *             |     Press Evt    Pressed Evt   Short release Evt   Short release Evt
 *             |                   (output)                            (output)
-*             | Note: At the first stage, button is in "idle" state, if the button is pressed,
-*             |       it will switch to "press pre" state which is used to check debounce. If
-*             |       button is released in this state, it will switch back to "idle" state.
-*             |       If the button is still pressed and the debounce check time is over, 
-*             |       function will returns a "Press event" and switch to "press after" state 
-*             |       in which state, long press will be checked here. If button is still 
-*             |       pressed and long press time is over, please see No.1 Demo; If button is
-*             |       released at this time, it will switch to "short release" state to do 
-*             |       debounce Checking. If button is re-pressed again, it will switch back 
-*             |       to "press after" state; If button is still released, function returns a 
-*             |       "Short release event" and switch to "idle" state for next button checking.
+*             |
+*             | Note: At the first stage, button is in "Idle" state, if the button is pressed,
+*             |       it will switch to "Press Evt" and start timing for debounce check, then
+*             |       switch to "Press PRE". If the button is release at this time, it will 
+*             |       switch back to "Idle". If the button is still pressed and debounce check
+*             |       time is out, switch to "Pressed Evt", start long-pressed timing and output
+*             |       event to caller, then switch to "Press AFT". If button is still pressed,
+*             |       and long-press time is out, please refer to No.1 demo. If the button is 
+*             |       released in "Press AFT", switch to "Short release Evt" and start timing
+*             |       for debounce check. Then switch to "Short Rls". If button is pressed again,
+*             |       swtich back to "Press AFT". If button is still released and debounce time
+*             |       is out, siwtch to "Short released Evt" and output event to caller. At the
+*             |       last, switch to "Idle" for next checking.
+*              ------------------------------------------------------------------------------
+*             | No.3 Demo of long press and release without debounce check
+*             |  ________                                    ________
+*             |          |               |                  |
+*             |    Idle  |  Press AFT    |    Holding       |  Idle   
+*             |  (output)|   (output)    |   (output)       | (output)     
+*             |          |_______________|__________________|
+*             |          |               |                  |
+*             |          V               V                  V
+*             |     Pressed Evt   Long pressed Evt   Long released Evt
+*             |       (output)        (output)             (output)
+*             |
+*             | Note: At the first stage, button is in "Idle" state, if the button is pressed,
+*             |       it will switch to "Pressed Evt", start long-pressed timing and output
+*             |       event to caller, then switch to "Press AFT". If button is released now,
+*             |       please refer to No.4 demo. when long-pressed time is out in "Press AFT",
+*             |       switch to "Long pressed Evt" and output event to caller. Then switch to
+*             |       "Holding". If button is released at this moment, switch to "Long released
+*             |       Evt" and output event to caller. At the last, switch to "Idle" for next 
+*             |       checking.
+*              ------------------------------------------------------------------------------
+*             | No.4 Demo of short press and release without debounce check
+*             |  ________                 ________
+*             |          |               |
+*             |    Idle  |   Press AFT   |  Idle         
+*             |  (output)|   (output)    | (output)
+*             |          |_______________|
+*             |          |               |
+*             |          V               V
+*             |     Pressed Evt    Short release Evt
+*             |      (output)          (output)
+*             |
+*             | Note: At the first stage, button is in "Idle" state, if the button is pressed,
+*             |       it will switch to "Pressed Evt", start long-pressed timing and output
+*             |       event to caller, then switch to "Press AFT". If button is still pressed,
+*             |       and long-press time is out, please refer to No.3 demo. If the button is 
+*             |       released in "Press AFT", switch to "Short released Evt" and output event
+*             |       to caller. At the last, switch to "Idle" for next checking.
 *              -----------------------------------------------------------------------------
 * Version    : V1.10
 * Author     : Ian
@@ -398,8 +450,10 @@ uint8 Btn_Channel_Process(uint8 u8Ch, T_BTN_RESULT* ptBtnRes)
 * description: This function should be called once before use button checking.
 *              This function get two necessary interface function: 
 *              "pfGetTm()":Function to get gengeral time;
-*              "pfGetBtnSt":Function to get button state(0/1).
-*              If the esay init is failed, DO NOT continue!!
+*              "pfGetBtnSt":Function to get button state(0/1). (if the MACRO 
+*              __BTN_SM_SPECIFIED_BTN_ST_FN is NOT defined)
+*
+*              NOTE:If the esay init is failed, DO NOT continue!!
 * Version    : V1.00
 * Author     : Ian
 * Date       : 15th Jun 2016
@@ -419,17 +473,17 @@ uint8 Btn_SM_Easy_Init(PF_GET_TM pfGetTm, PF_GET_BTN pfGetBtnSt)
     for(u8Idx = 0; u8Idx < MAX_BTN_CH; u8Idx++)
     {      
         /* Configure the button parameters */
-        s_atBtnPara.u8Ch[u8Idx]           = u8Idx + 1;       /* Channel number                  */
-        s_atBtnPara.u16DebounceTm[u8Idx]  = 50;              /* Debounce time is 50 ms          */
-        s_atBtnPara.u16LongPressTm[u8Idx] = 1000;            /* Long-press time is 1000ms       */
-        s_atBtnPara.u8NormalSt[u8Idx]     = 0;               /* The normal state of button is 1 */
-        s_atBtnPara.u8BtnEn[u8Idx]        = BTN_FUNC_ENABLE; /* Enable button at the beginning  */
+        s_atBtnPara[u8Idx].u8Ch           = u8Idx + 1;       /* Channel number                  */
+        s_atBtnPara[u8Idx].u16DebounceTm  = 50;              /* Debounce time is 50 ms          */
+        s_atBtnPara[u8Idx].u16LongPressTm = 1000;            /* Long-press time is 1000ms       */
+        s_atBtnPara[u8Idx].u8NormalSt     = 0;               /* The normal state of button is 0 */
+        s_atBtnPara[u8Idx].u8BtnEn        = BTN_FUNC_ENABLE; /* Enable button at the beginning  */
 #ifdef __BTN_SM_SPECIFIED_BTN_ST_FN
-        s_atBtnPara.pfGetBtnSt            = pfGetBtnSt;      /* Function to get button state    */
+        s_atBtnPara[u8Idx].pfGetBtnSt     = pfGetBtnSt;      /* Function to get button state    */
 #endif
 
         /* Button channels init */
-        Btn_Channel_Init(u8Idx + 1 ,&(s_atBtnPara[u8Idx + 1]));
+        Btn_Channel_Init(u8Idx + 1 ,&(s_atBtnPara[u8Idx]));
     }
     return SUCCESS;
 }
