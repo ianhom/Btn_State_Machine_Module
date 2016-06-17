@@ -134,13 +134,12 @@ void Gpio_Init()
 *              Button 1 is used to show button state in "button state display"
 *              mode, and increase vol in "Vol control" mode.
 *              Button 2 is used to decrease vol in "Vol control" mode only.
-* Version    : V1.00
+* Version    : V1.10
 * Author     : Ian
 * Date       : 15th Jun 2016
 ******************************************************************************/
 int main (void)
 {   
-    T_BTN_PARA tBtnPara;
     uint8 u8Idx,u8Vol = 0,u8FnCode = 1;;
     uint16 u16Tm = App_GetSystemTime_ms();
 
@@ -148,20 +147,8 @@ int main (void)
     Gpio_Init();
     Timer_Init();
 
-    /* Button general init */
-    Btn_General_Init(System_Time, Btn_St_Get);
-
-    /* Configure the button parameters */
-    tBtnPara.u16DebounceTm  = 50;              /* Debounce time is 50 ms          */
-    tBtnPara.u16LongPressTm = 1000;            /* Long-press time is 1000ms       */
-    tBtnPara.u8NormalSt     = 0;               /* The normal state of button is 1 */
-    tBtnPara.u8BtnEn        = BTN_FUNC_ENABLE; /* Enable button at the beginning  */
-
-    /* Button channels init */
-    for(u8Idx = 1; u8Idx <= MAX_BTN_CH; u8Idx++)
-    {
-        Btn_Channel_Init(u8Idx ,&tBtnPara);
-    }
+    /* Esay_Init */
+    Btn_SM_Easy_Init(System_Time, Btn_St_Get);
  
     while(1)
     {   
