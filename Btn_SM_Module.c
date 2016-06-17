@@ -330,10 +330,12 @@ uint8 Btn_Channel_Process(uint8 u8Ch, T_BTN_RESULT* ptBtnRes)
         return BTN_ERROR;
     }
 
+    ptBtnRes->u8Evt   = BTN_NONE_EVT;         /* Clear the old event */
+    ptBtnRes->u8State = ptBtnSt->u8BtnSt;     /* Fill current state  */
+
     /* Check if the button function is enabled or NOT */
     if(ptBtnPara->u8BtnEn != BTN_FUNC_ENABLE)
     {   /* If the function is NOT enabled, return none event and disabled state */
-        ptBtnRes->u8Evt   = BTN_NONE_EVT;
         ptBtnRes->u8State = BTN_DIS_ST;
         return SUCCESS;
     }
@@ -352,10 +354,7 @@ uint8 Btn_Channel_Process(uint8 u8Ch, T_BTN_RESULT* ptBtnRes)
         return BTN_ERROR;
     }  
 
-    /************************ Do operations of state ***************************/
-    ptBtnRes->u8Evt   = BTN_NONE_EVT;         /* Clear the old event */
-    ptBtnRes->u8State = ptBtnSt->u8BtnSt;     /* Fill current state  */
-    
+    /************************ Do operations of state ***************************/    
     /* If the current state is :           */
     /* Button just pressed event           */
     /* Button just short released event    */
