@@ -1,25 +1,44 @@
 /******************************************************************************
 * File       : Btn_SM_Module.c
-* Function   : Check button state and return short/long press or release
-* description: Button state machine module. It realise button short/long press or
-*              release checking and return responding events,Debounce checking can
-*              be enable/disable, and debounce time can be configured by "u16DebounceTm".
-*              Meanwhile, the time for long press distinguish can be set by "u16LongPressTm".
+* Function   : Check button state and return short/long press or release events and states.
+* description: Button state machine module. It realise button short/long press or release
+*              checking and return responding events and states.
+*              - Following parameters are configurable:
+*                  * Number of buttons.
+*                  * Normal state of each buttons.
+*                  * Enable/Disable control of each buttons.
+*                  * Debounce checking time of each buttons.
+*                  * Long-pressed time of each buttons.
+*                  * Button state getting function of each buttons.
+*
+*              - Following events (transient) can be provided
+*                  * BTN_PRESSED_EVT        Button is just short pressed                       
+*                  * BTN_LONG_PRESSED_EVT   Button is just long pressed                              
+*                  * BTN_S_RELEASED_EVT     Button is just released from short pressed                 
+*                  * BTN_L_RELEASED_EVT     Button is just released from long pressed    
+*
+*              - Following states (stable-state) can be provided
+*                  * BTN_IDLE_ST            Button stays in idle state (Not pressed)
+*                  * BTN_PRESS_AFT_ST       Button stays in short pressed state
+*                  * BTN_HOLDING_ST         Button stays in long pressed state              
 *              __________
-*              HOW TO USE: 
-*              Step 1: Modify MAX_BTN_CH in Btn_SM_Module.h with desired button numbers
-*              Step 2: Copy Demo code in Btn_SM_Module.h to upper layer, Create parameter 
-*                      structures and init them with desired parameters.
-*              Step 3: Create a "uint8 Get_General_Time()" function to get General time
-*              Step 4: Create a "uint8 Get_Button_Status(uint8 u8Ch)" function to get button
-*                      status(0/1).
-*              Step 5: Call "Btn_General_Init()" first to get previous interface functions.
-*                      If defined __BTN_SM_SPECIFIED_BTN_ST_FN, and NULL is used for input
-*                      parameter " PF_GET_BTN pfGetBtnSt", each button will use specified
-*                      Button state get function.
-*              Step 6: Call "Btn_Channel_Init()" per channel to init every button channel.
-*              Step 7: Poll "Btn_Channel_Process()" per channel to check button state.
-*              Button function can be enabled/disabled by calling "Btn_Func_En_Dis()".              
+*              HOW TO USE(Quick start): 
+*              Step 1: Modify MAX_BTN_CH in Btn_SM_Config.h with desired button numbers
+*              Step 2: Create a "uint16 (*)()" function to get system time according to
+*                      your hardware.
+*              Step 3: Create a "uint8 (*)(uint8 u8Ch)" function to get button status(0/1)
+*                      according to your hardware.
+*              Step 4: Call "Btn_SM_Easy_Init()" to get previous interface functions.
+*                      If defined __BTN_SM_SPECIFIED_BTN_ST_FN, each button will use 
+*                      specified button state getting function.
+*              Step 7: Poll "Btn_Channel_Process()" per channel to get events and states.
+*
+*              NOTE: For advanced configuration, please use Btn_General_Init() and
+*                    Btn_channel_Init().
+*              NOTE: Button function can be enabled/disabled by calling "Btn_Func_En_Dis().
+*              NOTE: This software is modularization designed, so "Btn_SM_Module.c" and 
+*                    "Btn_SM_Module.h" should work without any modification. 
+*         
 * Version    : V1.10
 * Author     : Ian
 * Date       : 15th Jun 2016
@@ -49,9 +68,9 @@ const uint8 cg_aau8StateMachine[BTN_STATE_NUM][BTN_TRG_NUM] =
     {BTN_IDLE_ST         , BTN_PRESS_PRE_ST    , BTN_IDLE_ST          ,  BTN_PRESSED_EVT     },    /* BTN_PRESS_PRE        */
     {BTN_SHORT_RELEASE_ST, BTN_PRESS_AFT_ST    , BTN_S_RELEASED_EVT   ,  BTN_PRESS_AFT_ST    },    /* BTN_SHORT_RELEASE    */
     {BTN_LONG_RELEASE_ST , BTN_HOLDING_ST      , BTN_L_RELEASED_EVT   ,  BTN_HOLDING_ST      },    /* BTN_LONG_RELEASE     */
-    {BTN_IDLE_ST         , BTN_PRESS_EVT       , BTN_IDLE_ST          ,  BTN_PRESS_EVT       },    /* BTN_IDLE             */  
+    {BTN_IDLE_ST         , BTN_PRESS_EVT       , BTN_IDLE_ST          ,  BTN_PRESSED_EVT     },    /* BTN_IDLE             */  
     {BTN_S_RELEASE_EVT   , BTN_PRESS_AFT_ST    , BTN_S_RELEASE_EVT    ,  BTN_LONG_PRESSED_EVT},    /* BTN_PRESS_AFT        */
-    {BTN_L_RELEASE_EVT   , BTN_HOLDING_ST      , BTN_L_RELEASE_EVT    ,  BTN_HOLDING_ST      }     /* BTN_HOLDING          */
+    {BTN_L_RELEASE_EVT   , BTN_HOLDING_ST      , BTN_L_RELEASED_EVT   ,  BTN_HOLDING_ST      }     /* BTN_HOLDING          */
 };
 
 static T_BTN_PARA *sg_aptBtnPara[MAX_BTN_CH] = {0};          /* Parameter interface          */
@@ -70,10 +89,10 @@ static PF_GET_BTN  sg_pfGetBtnSt             = NULL;         /* Function to get 
 *                               BTN_FUNC_DISABLE    Disable the button function
 * Output:    : None
 * Return     : None
-* description: If the button function is enabled, the button events can be returned
-*              according to the button operation; If the button function is disabled
-*              There will be no event being returned to the upper layer even button
-*              is operated. 
+* description: If the button function is enabled, the button events and states could
+*              be returned according to the button operation; If the button function 
+*              is disabled, the returned event and state will be BTN_NONE_EVT and 
+*              BTN_DIS_STeven button is operated. 
 * Version    : V1.00
 * Author     : Ian
 * Date       : 27th Jan 2016
@@ -92,7 +111,7 @@ void Btn_Func_En_Dis(uint8 u8Ch, uint8 u8EnDis)
 * Output:    : None
 * Return     : BTN_ERROR               Input parameter is invalid
 *              SUCCESS                 Init operation is successed
-* description: This function should be called once before use button checing.
+* description: This function should be called once before use button checking.
 *              This function get two necessary interface function: 
 *              "pfGetTm()":Function to get gengeral time;
 *              "pfGetBtnSt":Function to get button state(0/1).
@@ -193,14 +212,16 @@ uint8 Btn_Channel_Init(uint8 u8Ch ,T_BTN_PARA *ptBtnPara)
 * description: This function should be called after general init and channel init.
 *              This function should be polled to check button state.
 *              ------------------------------------------------------------------------------
-*             | No.1 Demo of long press with debounce check
-*             |           ___________ _________________ _______________ 
-*             |          |  Debounce |                 |               | Debounce |
-*             |    Idle  | Press PRE |   Press AFT     |    Holding    | Long Rls |  Idle         
-*             |  ________|           |                 |               |__________|________
-*             |                      |                 |                          |
-*             |                      V                 V                          V
-*             |                  Press Evt        Long press Evt            Long release Evt
+*             | No.1 Demo of long press and release
+*             |           ___________ _______________ __________________ 
+*             |          |  Debounce |               |                  |   Debounce   |
+*             |    Idle  | Press PRE |  Press AFT    |    Holding       |   Long Rls   |  Idle   
+*             |  (output)|           |   (output)    |   (output)       |              | (output)     
+*             |  ________|           |               |                  |______________|________
+*             |          |           |               |                  |              |
+*             |          V           V               V                  V              V
+*             |     Press Evt    Pressed Evt   Long pressed Evt   Long release Evt   Long released Evt
+*             |                   (output)        (output)                             (output)
 *             |
 *             | Note: At the first stage, button is in "idle" state, if the button is pressed,
 *             |       it will switch to "press pre" state which is used to check debounce. If
@@ -216,15 +237,16 @@ uint8 Btn_Channel_Init(uint8 u8Ch ,T_BTN_PARA *ptBtnPara)
 *             |       state; If button is still released, function returns a "Long release event"
 *             |       and switch to "idle" state for next button checking.
 *              ------------------------------------------------------------------------------
-*             | No.2 Demo of short press with debounce check
-*             |           ___________ ______________ 
-*             |          |  Debounce |              | Debounce |
-*             |    Idle  | Press PRE |   Press AFT  | Short Rls|  Idle         
-*             |  ________|           |              |__________|________
-*             |                      |                         |
-*             |                      V                         V
-*             |                  Press Evt              Short release Evt
-*             |
+*             | No.2 Demo of short press and release
+*             |           ___________ _______________ 
+*             |          |  Debounce |               |  Debounce   |
+*             |    Idle  | Press PRE |   Press AFT   |  Short Rls  |  Idle         
+*             |  (output)|           |   (output)    |             | (output)
+*             |  ________|           |               |_____________|________
+*             |          |           |               |             |
+*             |          V           V               V             V
+*             |     Press Evt    Pressed Evt   Short release Evt   Short release Evt
+*             |                   (output)                            (output)
 *             | Note: At the first stage, button is in "idle" state, if the button is pressed,
 *             |       it will switch to "press pre" state which is used to check debounce. If
 *             |       button is released in this state, it will switch back to "idle" state.
@@ -236,44 +258,10 @@ uint8 Btn_Channel_Init(uint8 u8Ch ,T_BTN_PARA *ptBtnPara)
 *             |       debounce Checking. If button is re-pressed again, it will switch back 
 *             |       to "press after" state; If button is still released, function returns a 
 *             |       "Short release event" and switch to "idle" state for next button checking.
-*              ------------------------------------------------------------------------------
-*             | No.3 Demo of long press WITHOUT debounce check
-*             |           _________________ _______________ 
-*             |          |                 |               |
-*             |    Idle  |   Press AFT     |    Holding    |  Idle         
-*             |  ________|                 |               |________
-*             |          |                 |               |
-*             |          V                 V               V
-*             |       Press Evt       Long press Evt    Long release Evt
-*             |
-*             | Note: At the first stage, button is in "idle" state, if the button is pressed,
-*             |       function will returns a "Press event" and switch to "press after" state 
-*             |       in which state, long press will be checked here. If button is released 
-*             |       at this time, please see No.4 Demo; If button is still pressed and long
-*             |       press time is over, function will return a "Long press event" and switch
-*             |       to "Holding" state, in "holding" state it will wait button releasing, if
-*             |       button is released, function returns a "Long release event" and switch 
-*             |       to "idle" state for next button checking.
 *              -----------------------------------------------------------------------------
-*             | No.4 Demo of short press WITHOUT debounce check
-*             |           ______________ 
-*             |          |              |
-*             |    Idle  |   Press AFT  |  Idle         
-*             |  ________|              |________
-*             |          |              |
-*             |          V              V
-*             |      Press Evt      Short release Evt
-*             |
-*             | Note: At the first stage, button is in "idle" state, if the button is pressed,
-*             |       function will returns a "Press event" and switch to "press after" state 
-*             |       in which state, long press will be checked here. If button is still 
-*             |       pressed and long press time is over, please see No.3 Demo; If button is
-*             |       released at this time, function returns a "Short release event" and 
-*             |       switch to "idle" state for next button checking.
-*              -----------------------------------------------------------------------------
-* Version    : V1.00
+* Version    : V1.10
 * Author     : Ian
-* Date       : 27th Jan 2016
+* Date       : 15th Jun 2016
 ******************************************************************************/
 uint8 Btn_Channel_Process(uint8 u8Ch, T_BTN_RESULT* ptBtnRes)
 {
@@ -399,7 +387,52 @@ uint8 Btn_Channel_Process(uint8 u8Ch, T_BTN_RESULT* ptBtnRes)
 }
 
 
+/******************************************************************************
+* Name       : uint8 Btn_SM_Easy_Init(PF_GET_TM pfGetTm, PF_GET_BTN pfGetBtnSt)
+* Function   : Easy init operation of button state machine for quick start.
+* Input      : PF_GET_TM pfGetTm       Function to get gengeral time
+*              PF_GET_BTN pfGetBtnSt   Function to get button state(0/1)
+* Output:    : None
+* Return     : BTN_ERROR               Input parameter is invalid
+*              SUCCESS                 Init operation is successed
+* description: This function should be called once before use button checking.
+*              This function get two necessary interface function: 
+*              "pfGetTm()":Function to get gengeral time;
+*              "pfGetBtnSt":Function to get button state(0/1).
+*              If the esay init is failed, DO NOT continue!!
+* Version    : V1.00
+* Author     : Ian
+* Date       : 15th Jun 2016
+******************************************************************************/
+uint8 Btn_SM_Easy_Init(PF_GET_TM pfGetTm, PF_GET_BTN pfGetBtnSt)
+{
+    static T_BTN_PARA s_atBtnPara[MAX_BTN_CH];
+    uint8 u8Idx,u8Temp;
 
+    /* Button general init */
+    u8Temp = Btn_General_Init(pfGetTm, pfGetBtnSt);
+    if(BTN_ERROR == u8Temp)
+    {
+        return BTN_ERROR;
+    }
+    
+    for(u8Idx = 0; u8Idx < MAX_BTN_CH; u8Idx++)
+    {      
+        /* Configure the button parameters */
+        s_atBtnPara.u8Ch[u8Idx]           = u8Idx + 1;       /* Channel number                  */
+        s_atBtnPara.u16DebounceTm[u8Idx]  = 50;              /* Debounce time is 50 ms          */
+        s_atBtnPara.u16LongPressTm[u8Idx] = 1000;            /* Long-press time is 1000ms       */
+        s_atBtnPara.u8NormalSt[u8Idx]     = 0;               /* The normal state of button is 1 */
+        s_atBtnPara.u8BtnEn[u8Idx]        = BTN_FUNC_ENABLE; /* Enable button at the beginning  */
+#ifdef __BTN_SM_SPECIFIED_BTN_ST_FN
+        s_atBtnPara.pfGetBtnSt            = pfGetBtnSt;      /* Function to get button state    */
+#endif
+
+        /* Button channels init */
+        Btn_Channel_Init(u8Idx + 1 ,&(s_atBtnPara[u8Idx + 1]));
+    }
+    return SUCCESS;
+}
 
 
 /* end-of-file */
