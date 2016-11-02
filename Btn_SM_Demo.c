@@ -64,15 +64,15 @@ static T_BTN_RESULT sg_atBtn[MAX_BTN_CH];
 uint8 Btn_St_Get(uint8 u8Ch)
 {
     uint8 u8Temp;
-    if(u8Ch == 1)    /* If it is button 1 */
+    if(u8Ch == 1)         /* If it is button 1 */
     {   /* Get the button state */
         u8Temp = (!(GPIOA_PDIR & (1 << 5)));
     }
-    if(u8Ch == 2)    /* If it is button 2 */
+    else if(u8Ch == 2)    /* If it is button 2 */
     {   /* Get the button state */
         u8Temp = (!(GPIOA_PDIR & (1 << 4)));
     }
-    if(u8Ch == 3)    /* If it is button 3 */
+    else if(u8Ch == 3)    /* If it is button 3 */
     {   /* Get the button state */
         u8Temp = (!(GPIOA_PDIR & (1 << 12)));
     }
